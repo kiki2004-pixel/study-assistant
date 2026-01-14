@@ -1,0 +1,155 @@
+name: Build and deploy
+
+on:
+  push:
+    branches:
+      - main
+      - uat
+      - prod
+  pull_request:
+    branches:
+      - main
+      - uat
+      - prod
+
+jobs:
+  prepare_build:
+    runs-on: ubuntu-latest
+    outputs:
+      APP_IMAGE_REPOSITORY: ${{ steps.set_variables.outputs.APP_IMAGE_REPOSITORY }}
+      APP_VERSION: ${{ steps.set_variables.outputs.APP_VERSION }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - id: set_variables
+        name: Set variables
+        env:
+          APP_IMAGE_REPOSITORY: ghcr.io/nerd-zero/mail-validation
+        run: |
+          VER=$(python version.py)
+          echo "VERSION=$VER" >> $GITHUB_ENV
+          
+          # Add suffix based on branch
+          if [[ "${{ github.base_ref }}" == "uat" ]]; then
+            VER="${VER}-beta"
+          elif [[ "${{ github.ref_name }}" == "uat" ]]; then
+            VER="${VER}-beta"
+          elif [[ "${{ github.base_ref }}" == "prod" ]]; then
+            VER="${VER}"
+          elif [[ "${{ github.ref_name }}" == "prod" ]]; then
+            VER="${VER}"
+          else
+            VER="${VER}-alpha"
+          fi
+          echo "APP_VERSION=${VER}" >> $GITHUB_OUTPUT
+          echo "APP_IMAGE_REPOSITORY=${APP_IMAGE_REPOSITORY}:${VER}" >> $GITHUB_OUTPUT
+  verify_build:
+    if: github.event_name == 'pull_request'
+    needs: prepare_build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify image tag doesn't exist
+        env:
+          DOCKER_USERNAME: ${{ github.actor }}
+          DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Logging into container repository..."
+          skopeo login --username "$DOCKER_USERNAME" --password "$DOCKER_PASSWORD" ghcr.io
+          if skopeo inspect docker://${{needs.prepare_build.outputs.APP_IMAGE_REPOSITORY}} > /dev/null 2>&1; then
+            echo "Image ${{needs.prepare_build.outputs.APP_IMAGE_REPOSITORY}} already exists. Pipeline will fail."
+            exit 1
+          else
+            echo "Image tag is available, continue."
+          fi
+  deploy_dev:
+    needs: [prepare_build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: Development
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build container image
+        run: |
+          docker build . \
+          --build-arg "BUILD_ENV=dev" \
+          --build-arg "GIT_COMMIT=${{ github.sha }}" \
+          --build-arg "APP_VERSION=${{ needs.prepare_build.outputs.APP_VERSION }}" \
+          --tag "${{ needs.prepare_build.outputs.APP_IMAGE_REPOSITORY }}"
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Docker Image
+        run: |
+          docker push ${{ needs.prepare_build.outputs.APP_IMAGE_REPOSITORY }}
+  deploy_uat:
+    needs: [prepare_build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/uat'
+    environment:
+      name: UAT
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build container image
+        run: |
+          docker build . \
+          --build-arg "BUILD_ENV=uat" \
+          --build-arg "GIT_COMMIT=${{ github.sha }}" \
+          --build-arg "APP_VERSION=${{ needs.prepare_build.outputs.APP_VERSION }}" \
+          --tag "${{ needs.prepare_build.outputs.APP_IMAGE_REPOSITORY }}"
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Docker Image
+        run: |
+          docker push ${{ needs.prepare_build.outputs.APP_IMAGE_REPOSITORY }}
+  deploy_prod:
+    needs: [prepare_build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/prod'
+    environment:
+      name: Production
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build container image
+        run: |
+          docker build . \
+          --build-arg "BUILD_ENV=prod" \
+          --build-arg "GIT_COMMIT=${{ github.sha }}" \
+          --build-arg "APP_VERSION=${{ needs.prepare_build.outputs.APP_VERSION }}" \
+          --tag "${{ needs.prepare_build.outputs.APP_IMAGE_REPOSITORY }}"
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Docker Image
+        run: |
+          docker push ${{ needs.prepare_build.outputs.APP_IMAGE_REPOSITORY }}
+ 
