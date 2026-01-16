@@ -1,5 +1,4 @@
 import tomllib
-import os
 from pathlib import Path  
 from fastapi import FastAPI
 from mail_validation.routers.validation_router import router as validation_router

@@ -6,7 +6,6 @@ os.environ["LISTMONK_USER"] = "test"
 os.environ["LISTMONK_PASS"] = "test"
 os.environ["MAILS_SO_API_KEY"] = "test"
 
-import pytest
 from fastapi.testclient import TestClient
 from main import app
 from mail_validation.utils import mailso_client, listmonk_client
