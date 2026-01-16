@@ -3,7 +3,6 @@ from mail_validation.utils.mailso_client import validate_email
 from mail_validation.utils.listmonk_client import block_email
 from mail_validation.models.validation import ValidationResponse
 
-# Define the router with a prefix so all paths start with /validation
 router = APIRouter()
 
 @router.post("/validate-single", response_model=ValidationResponse)

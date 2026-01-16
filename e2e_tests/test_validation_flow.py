@@ -21,7 +21,7 @@ async def test_full_webhook_to_blacklist_flow():
             )
 
             # 2. Mock Listmonk
-            respx.put(f"{settings.listmonk_url}/api/subscribers/blocklist").mock(
+            respx.put(f"{settings.listmonk_url.rstrip('/')}/api/subscribers/blocklist").mock(
                 return_value=httpx.Response(200, json={"status": "success"})
             )
 
