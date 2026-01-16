@@ -8,7 +8,6 @@ os.environ["MAILS_SO_API_KEY"] = "test"
 
 from fastapi.testclient import TestClient
 from main import app
-from mail_validation.utils import mailso_client, listmonk_client
 
 client = TestClient(app)
 
@@ -45,11 +44,9 @@ def test_validate_undeliverable_email(mocker):
     assert response.status_code == 200
     assert response.json()["action"] == "blacklisted"
     assert response.json()["status"] == "undeliverable"
-    # Verify that the Listmonk block function was actually called
     mock_block.assert_called_once()
 
 # 3. Test Invalid Email Format (Pydantic Validation)
 def test_invalid_email_format():
-    # If your model uses EmailStr, FastAPI will block this before the logic starts
     response = client.post("/validation/validate-single?email=not-an-email")
-    assert response.status_code == 422 # Unprocessable Entity
+    assert response.status_code == 422 
