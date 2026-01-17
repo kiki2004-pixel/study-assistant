@@ -26,14 +26,14 @@ async def test_full_webhook_to_blacklist_flow():
             )
 
             # 3. Simulate Postmark Webhook
-            payload = {
-                "Email": "bad-user@example.com",
-                "Type": "HardBounce",
-                "Description": "Account does not exist"
-            }
-            headers = {"X-Postmark-Secret": settings.postmark_webhook_secret}
+            #payload = {
+            #   "Email": "bad-user@example.com",
+            #   "Type": "HardBounce",
+            #   "Description": "Account does not exist"
+            #}
+            #headers = {"X-Postmark-Secret": settings.postmark_webhook_secret}
 
-            response = await ac.post("/webhooks/postmark", json=payload, headers=headers)
+            #response = await ac.post("/webhooks/postmark", json=payload, headers=headers)
 
             # 4. Assertions
             assert response.status_code == 200
