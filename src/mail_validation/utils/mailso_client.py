@@ -33,10 +33,9 @@ def validate_email(email: str) -> Dict[str, Any]:
     api_key = settings.mails_so_api_key
     
     # Critical: Must include the full path /v1/validate
-    api_url = "https://api.mails.so"
+    api_url = "https://api.mails.so/v1/validate"
 
-    if not api_key:
-        raise MailSoError("MAILS_SO_API_KEY is not set in settings")
+    assert api_key, "MAILS_SO_API_KEY is not set in settings"
 
     # Mails.so uses 'x-api-key' for authentication
     headers = {

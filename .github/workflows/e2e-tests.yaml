@@ -34,5 +34,4 @@ jobs:
           MAILS_SO_API_KEY: "test_key"
           POSTMARK_WEBHOOK_SECRET: "test_secret"
         run: |
-        
           pytest e2e_tests/test_validation_flow.py

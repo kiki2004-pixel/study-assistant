@@ -1,7 +1,7 @@
 [project]
 name = "mail-validation-service"
 version = "2025.11.002"
-description = "AI backend responsible for receiving , validating and blacklisting invalid emails for clients"
+description = "AI backend responsible for receiving, validating and blacklisting invalid emails for clients"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -24,8 +24,8 @@ dependencies = [
     "psycopg2-binary>=2.9.11",
     "alembic>=1.17.0",
     "jsonschema>=4.25.1",
-    "prometheus-client",  
-    "prometheus-fastapi-instrumentator"
+    "prometheus-client>=0.20.0",
+    "prometheus-fastapi-instrumentator>=7.0.0"
 ]
 
 [dependency-groups]

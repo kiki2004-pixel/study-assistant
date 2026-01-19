@@ -24,7 +24,7 @@ def block_email(email: str, reason: str = None) -> Dict[str, Any]:
     api_key = settings.listmonk_pass 
 
     if not api_key:
-        raise ListmonkError("LISTMONK_API_KEY (listmonk_pass) is not set in settings")
+        raise ListmonkError("LISTMONK_PASS (listmonk_pass) is not set in settings")
 
     url = f"{api_url.rstrip('/')}/api/subscribers/blocklist"
     
