@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Header, HTTPException
+from fastapi import APIRouter, Request, Header
 from prometheus_client import Counter
 from mail_validation.settings import settings
 
