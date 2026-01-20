@@ -7,8 +7,11 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY} 
-      - AGENT_NAME=mail-validation
+      - LISTMONK_URL=${LISTMONK_URL}
+      - LISTMONK_PASS=${LISTMONK_PASS}
+      - MAILS_SO_API_KEY=${MAILS_SO_API_KEY}
+      - POSTMARK_WEBHOOK_SECRET=${POSTMARK_WEBHOOK_SECRET}
+      - AGENT_NAME=mail-validation-service
     restart: unless-stopped
 
   prometheus:
