@@ -5,9 +5,12 @@ from mail_validation.settings import settings
 
 DEFAULT_TIMEOUT = 10
 
+
 class ListmonkError(Exception):
     """Custom exception for Listmonk API issues."""
+
     pass
+
 
 def _raise_for_status(resp: Response) -> None:
     try:
@@ -15,19 +18,20 @@ def _raise_for_status(resp: Response) -> None:
     except requests.HTTPError as e:
         raise ListmonkError(f"Listmonk API error: {e} - {resp.text}") from e
 
+
 def block_email(email: str, reason: str = None) -> Dict[str, Any]:
     """
     Adds `email` to Listmonk's global blocklist using settings from settings.py.
     """
-    
+
     api_url = settings.listmonk_url
-    api_key = settings.listmonk_pass 
+    api_key = settings.listmonk_pass
 
     if not api_key:
         raise ListmonkError("LISTMONK_PASS (listmonk_pass) is not set in settings")
 
     url = f"{api_url.rstrip('/')}/api/subscribers/blocklist"
-    
+
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
