@@ -22,13 +22,9 @@ Instrumentator().instrument(app).expose(app)
 
 # Validation Endpoint: /validation/validate-single
 app.include_router(
-    router=validation_router,
-    prefix="/validation",
-    tags=["Email Validation"]
+    router=validation_router, prefix="/validation", tags=["Email Validation"]
 )
 
 app.include_router(
-    router=postmark_router,
-    prefix="/webhooks",
-    tags=["Postmark Webhooks"]
+    router=postmark_router, prefix="/webhooks", tags=["Postmark Webhooks"]
 )
