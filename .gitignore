@@ -7,3 +7,6 @@ __pycache__/
 __pycache__
 venv/
 venv
+data/
+data/grafana/
+data/prometheus/

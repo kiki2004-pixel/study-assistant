@@ -2,6 +2,6 @@ venv/
 .venv/
 __pycache__/
 .git/
-# Ignore persistent Docker data folders
-data/grafana/
-data/prometheus/
+data/
+*.pyc
+.pytest_cache/
