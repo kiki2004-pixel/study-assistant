@@ -39,5 +39,12 @@ source venv/bin/activate
 pip install fastapi uvicorn prometheus-fastapi-instrumentator requests
 
  **Run Service:**
+**Option A Full Stack (App + Monitoring)**
+
+bash
+docker compose up -d
+
+**Option B Local Development**
+
 bash
 uv run fastapi dev --reload --port 3000 src/main.py 
