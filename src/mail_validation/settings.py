@@ -5,7 +5,6 @@ class Settings(BaseSettings):
     listmonk_url: str = "http://localhost:9000"
     listmonk_user: str
     listmonk_pass: str
-    mails_so_api_key: str
 
     # This is the value you must use in your Postmark header
     postmark_webhook_secret: str
