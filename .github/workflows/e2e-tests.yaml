@@ -31,7 +31,6 @@ jobs:
           LISTMONK_URL: "http://localhost:9000"
           LISTMONK_USER: "admin"
           LISTMONK_PASS: "test_key"
-          MAILS_SO_API_KEY: "test_key"
           POSTMARK_WEBHOOK_SECRET: "test_secret"
         run: |
           pytest e2e_tests/test_validation_flow.py
