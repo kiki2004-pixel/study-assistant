@@ -33,7 +33,7 @@ def validate_email_syntax(email: str) -> EmailSyntaxResult:
         return EmailSyntaxResult(False, "too_long", "Email exceeds maximum length.")
 
     # Reject whitespace
-    if any(ch.isspace() for ch in e):
+    if any(ch.isspace() for ch in email):
         return EmailSyntaxResult(False, "contains_whitespace", "Email contains whitespace.")
 
     # Must contain exactly one "@"
