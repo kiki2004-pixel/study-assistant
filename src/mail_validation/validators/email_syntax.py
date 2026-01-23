@@ -3,8 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from pydantic import EmailStr
-from pydantic import TypeAdapter
+from pydantic import EmailStr, TypeAdapter, ValidationError
 
 
 @dataclass(frozen=True)
@@ -60,7 +59,7 @@ def validate_email_syntax(email: str) -> EmailSyntaxResult:
     # Let Pydantic validate overall formatting rules
     try:
         _EMAIL_ADAPTER.validate_python(e)
-    except Exception as err:
+    except ValidationError as err:
         return EmailSyntaxResult(False, "invalid_format", f"Invalid email format: {err}")
 
     return EmailSyntaxResult(True)
