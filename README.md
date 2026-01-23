@@ -1,9 +1,9 @@
 # Mail-Validator
-A high-performance FastAPI microservice designed to protect mail server reputation. It listens to Postmark webhooks, verifies email quality via Mails.so, and automatically updates the Listmonk global blacklist.
+A high-performance FastAPI microservice designed to protect mail server reputation. It listens to Postmark webhooks, verifies email quality.
 
 ## 🚀 The Workflow
 Trigger: Postmark sends a webhook event (Bounce or Spam Complaint) to this service.
-Verify: The service queries Mails.so to confirm if the email is truly undeliverable.
+Verify: The service verifies if the email is truly undeliverable.
 Action: If invalid, the service calls the Listmonk API to move the email to the Blacklist.
 Monitor: All actions are sent to Prometheus and visualized on a Grafana dashboard.
 
