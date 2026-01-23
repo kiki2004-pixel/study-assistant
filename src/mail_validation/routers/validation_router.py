@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 from time import perf_counter
+import logging
 
 from mail_validation.services.validation_service import validate_email_internal
 from mail_validation.models.validation import ValidationResponse
@@ -10,8 +11,9 @@ from mail_validation.models.bulk_validation import (
     BulkValidationSummary,
 )
 
-router = APIRouter()
+logger = logging.getLogger(__name__)
 
+router = APIRouter()
 
 @router.post("/validate-single", response_model=ValidationResponse)
 async def validate_only(
@@ -67,9 +69,27 @@ async def validate_bulk(payload: BulkValidationRequest):
     results: list[BulkEmailResult] = []
     valid_count = 0
     invalid_count = 0
+    error_count = 0
 
     for email in emails:
-        r = validate_email_internal(email)
+        try:
+            r = validate_email_internal(email)
+        except Exception:
+            error_count += 1
+            logger.exception("Unexpected error validating email=%r", email)
+
+            item = BulkEmailResult(
+                email=email,
+                valid=False,
+                status="error",
+                reason="internal_error",
+                layer="internal",
+                details={"message": "Unexpected validation error."},
+            )
+
+            if payload.response_mode in ("all", "invalid_only"):
+                results.append(item)
+            continue
 
         if not r["ok"] and r.get("layer") == "syntax":
             invalid_count += 1
@@ -104,6 +124,7 @@ async def validate_bulk(payload: BulkValidationRequest):
         processed=processed,
         valid=valid_count,
         invalid=invalid_count,
+        errors=error_count,
         deduped=payload.dedupe,
         duplicates_removed=duplicates_removed,
         duration_ms=duration_ms,

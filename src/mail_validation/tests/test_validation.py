@@ -64,3 +64,30 @@ def test_validate_bulk_rejects_over_limit():
     r = client.post("/validation/validate-bulk", json=payload)
     assert r.status_code == 422  # Pydantic validation error
 
+def test_bulk_does_not_fail_on_internal_error(monkeypatch):
+    import mail_validation.routers.validation_router as vr
+
+    def boom(email: str):
+        if email == "explode@example.com":
+            raise RuntimeError("boom")
+        return {
+            "ok": True,
+            "layer": "syntax",
+            "status": "unknown",
+            "reason": None,
+            "details": {},
+        }
+
+    monkeypatch.setattr(vr, "validate_email_internal", boom)
+    payload = {
+        "emails": ["ok@example.com", "explode@example.com", "ok2@example.com"],
+        "response_mode": "all",
+        "dedupe": False,
+    }
+    r = client.post("/validation/validate-bulk", json=payload)
+    assert r.status_code == 200
+
+    data = r.json()
+    assert data["summary"]["errors"] == 1
+    assert any(x["status"] == "error" for x in data["results"])
+

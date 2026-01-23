@@ -27,6 +27,7 @@ class BulkValidationSummary(BaseModel):
     processed: int
     valid: int
     invalid: int
+    errors: int
     deduped: bool
     duplicates_removed: int
     duration_ms: int
