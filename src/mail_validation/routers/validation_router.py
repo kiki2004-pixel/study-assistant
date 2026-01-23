@@ -56,10 +56,11 @@ async def validate_bulk(payload: BulkValidationRequest):
         seen = set()
         deduped = []
         for e in emails:
-            if e in seen:
+            normalized = e.lower()
+            if normalized in seen:
                 duplicates_removed += 1
                 continue
-            seen.add(e)
+            seen.add(normalized)
             deduped.append(e)
         emails = deduped
 
