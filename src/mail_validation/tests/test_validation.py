@@ -14,7 +14,7 @@ client = TestClient(app)
 def test_valid_email_passes_syntax():
     response = client.post("/validation/validate-single?email=good@example.com")
     assert response.status_code == 200
-    assert response.json()["status"] in {"unknown"}  # until DNS layer exists
+    assert response.json()["status"] == "unknown"  # until DNS layer exists
 
 
 def test_invalid_email_format_rejected():
