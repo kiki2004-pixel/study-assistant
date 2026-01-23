@@ -91,3 +91,26 @@ def test_bulk_does_not_fail_on_internal_error(monkeypatch):
     assert data["summary"]["errors"] == 1
     assert any(x["status"] == "error" for x in data["results"])
 
+def test_validate_bulk_dedupe_removes_duplicates():
+    payload = {
+        "emails": ["a@example.com", "a@example.com", "b@example.com", "b@example.com", "c@example.com"],
+        "response_mode": "summary_only",
+        "dedupe": True,
+    }
+
+    r = client.post("/validation/validate-bulk", json=payload)
+    assert r.status_code == 200
+
+    data = r.json()
+    summary = data["summary"]
+
+    assert summary["total"] == 5
+
+    assert summary["processed"] == 3
+
+    assert summary["duplicates_removed"] == 2
+    assert summary["deduped"] is True
+
+    assert summary["valid"] == 3
+    assert summary["invalid"] == 0
+    assert summary["errors"] == 0
