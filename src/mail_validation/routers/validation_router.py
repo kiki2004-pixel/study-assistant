@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 from time import perf_counter
+import asyncio
 import logging
 
 from mail_validation.services.validation_service import validate_email_internal
@@ -19,7 +20,7 @@ router = APIRouter()
 async def validate_only(
     email: str = Query(..., description="The email address to verify"),
 ):
-    result = validate_email_internal(email)
+    result = await asyncio.to_thread(validate_email_internal, email)
 
     if not result["ok"] and result.get("layer") == "syntax":
         raise HTTPException(
@@ -45,7 +46,6 @@ async def validate_only(
 async def validate_bulk(payload: BulkValidationRequest):
     """
     Validates up to 30,000 emails in a single request.
-    Bulk-safe: always returns per-email results (or summary-only) without failing the whole batch.
     """
     start = perf_counter()
 
@@ -73,7 +73,7 @@ async def validate_bulk(payload: BulkValidationRequest):
 
     for email in emails:
         try:
-            r = validate_email_internal(email)
+            r = await asyncio.to_thread(validate_email_internal, email)
         except Exception:
             error_count += 1
             logger.exception("Unexpected error validating email=%r", email)
