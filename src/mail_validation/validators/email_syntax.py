@@ -24,8 +24,6 @@ def validate_email_syntax(email: str) -> EmailSyntaxResult:
     Email syntax validation (Layer 1).
     Bulk-safe: no regex bombs, no network calls, bounded checks.
     """
-    if email is None:
-        return EmailSyntaxResult(False, "empty", "Email is empty.")
 
     e = email.strip()
     if e == "":
