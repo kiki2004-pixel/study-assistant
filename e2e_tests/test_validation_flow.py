@@ -12,7 +12,11 @@ def _env(name: str, default: str = "") -> str:
 
 
 @pytest.mark.skipif(
-    not (_env("LISTMONK_BASE_URL") and _env("LISTMONK_API_USER") and _env("LISTMONK_API_TOKEN")),
+    not (
+        _env("LISTMONK_BASE_URL")
+        and _env("LISTMONK_API_USER")
+        and _env("LISTMONK_API_TOKEN")
+    ),
     reason="LISTMONK_BASE_URL/USER/TOKEN not set",
 )
 def test_listmonk_api_reachable():
@@ -23,7 +27,11 @@ def test_listmonk_api_reachable():
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(
-    not (_env("LISTMONK_BASE_URL") and _env("LISTMONK_API_USER") and _env("LISTMONK_API_TOKEN")),
+    not (
+        _env("LISTMONK_BASE_URL")
+        and _env("LISTMONK_API_USER")
+        and _env("LISTMONK_API_TOKEN")
+    ),
     reason="LISTMONK_BASE_URL/USER/TOKEN not set",
 )
 async def test_listmonk_fetch_lists_smoke():

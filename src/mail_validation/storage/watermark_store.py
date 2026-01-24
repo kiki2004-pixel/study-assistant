@@ -3,7 +3,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from sqlalchemy import BigInteger, Column, Integer, MetaData, Table, Text, create_engine, select, update
+from sqlalchemy import (
+    BigInteger,
+    Column,
+    Integer,
+    MetaData,
+    Table,
+    Text,
+    create_engine,
+    select,
+    update,
+)
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 

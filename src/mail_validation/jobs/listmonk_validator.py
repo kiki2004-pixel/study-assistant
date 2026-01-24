@@ -118,7 +118,9 @@ class ListmonkValidatorJob:
                     if not result.get("ok", False):
                         invalid_ids.append(subscriber.id)
 
-                    watermark_after = _max_timestamp(watermark_after, subscriber.created_at)
+                    watermark_after = _max_timestamp(
+                        watermark_after, subscriber.created_at
+                    )
 
                 for batch in _chunked(invalid_ids, self._batch_size):
                     await self._client.bulk_unsubscribe(list_id=list_id, ids=batch)
@@ -173,7 +175,9 @@ def _parse_list_ids(raw: str) -> Optional[Sequence[int]]:
         try:
             ids.append(int(part))
         except ValueError as exc:
-            raise ValueError("LISTMONK_LIST_ID must be integer or comma-separated integers") from exc
+            raise ValueError(
+                "LISTMONK_LIST_ID must be integer or comma-separated integers"
+            ) from exc
     return ids or None
 
 

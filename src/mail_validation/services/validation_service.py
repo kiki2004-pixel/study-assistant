@@ -23,7 +23,7 @@ def validate_email_internal(email: str) -> Dict[str, Any]:
     return {
         "ok": True,
         "layer": "syntax",
-        "status": "unknown",   # until we implement DNS layer
+        "status": "unknown",  # until we implement DNS layer
         "reason": None,
         "details": {},
     }

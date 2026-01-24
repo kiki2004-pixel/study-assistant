@@ -14,7 +14,9 @@ class FakeListmonkClient:
         self._fail_on_fetch = fail_on_fetch
         self.unsubscribed_ids = []
 
-    async def fetch_subscribers(self, *, list_id: int, watermark: str, page: int, per_page: int):
+    async def fetch_subscribers(
+        self, *, list_id: int, watermark: str, page: int, per_page: int
+    ):
         if self._fail_on_fetch:
             raise RuntimeError("boom")
         index = page - 1
@@ -66,8 +68,12 @@ async def test_invalid_syntax_emails_unsubscribed(db_url):
     store = WatermarkStore(db_url)
     pages = [
         [
-            ListmonkSubscriber(id=1, email="bad-email", created_at="2024-01-02T00:00:00Z"),
-            ListmonkSubscriber(id=2, email="good@example.com", created_at="2024-01-02T00:01:00Z"),
+            ListmonkSubscriber(
+                id=1, email="bad-email", created_at="2024-01-02T00:00:00Z"
+            ),
+            ListmonkSubscriber(
+                id=2, email="good@example.com", created_at="2024-01-02T00:01:00Z"
+            ),
         ]
     ]
     client = FakeListmonkClient(pages)
@@ -84,8 +90,12 @@ async def test_valid_emails_not_unsubscribed(db_url):
     store = WatermarkStore(db_url)
     pages = [
         [
-            ListmonkSubscriber(id=10, email="a@example.com", created_at="2024-01-03T00:00:00Z"),
-            ListmonkSubscriber(id=11, email="b@example.com", created_at="2024-01-03T00:02:00Z"),
+            ListmonkSubscriber(
+                id=10, email="a@example.com", created_at="2024-01-03T00:00:00Z"
+            ),
+            ListmonkSubscriber(
+                id=11, email="b@example.com", created_at="2024-01-03T00:02:00Z"
+            ),
         ]
     ]
     client = FakeListmonkClient(pages)

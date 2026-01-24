@@ -11,7 +11,6 @@ DEFAULT_MAX_RETRIES = 3
 HTTP_RETRY_STATUSES = {429, 500, 502, 503, 504}
 
 
-
 class ListmonkError(RuntimeError):
     pass
 
@@ -115,7 +114,9 @@ class ListmonkClient:
             lists.append(ListmonkList(id=int(item["id"]), name=str(item["name"])))
         return lists
 
-    async def bulk_unsubscribe(self, *, list_id: int, ids: Iterable[int]) -> Dict[str, Any]:
+    async def bulk_unsubscribe(
+        self, *, list_id: int, ids: Iterable[int]
+    ) -> Dict[str, Any]:
         payload = {
             "action": "unsubscribe",
             "ids": list(ids),
@@ -134,7 +135,9 @@ class ListmonkClient:
         last_exc: Optional[Exception] = None
         for attempt in range(1, self._max_retries + 1):
             try:
-                resp = await self._client.request(method, path, params=params, json=json)
+                resp = await self._client.request(
+                    method, path, params=params, json=json
+                )
                 if resp.status_code in HTTP_RETRY_STATUSES:
                     raise ListmonkError(
                         f"Listmonk transient error {resp.status_code}: {resp.text}"
@@ -163,7 +166,9 @@ class ListmonkClient:
                     break
                 backoff = 0.5 * (2 ** (attempt - 1))
                 await asyncio.sleep(backoff)
-        raise ListmonkError(f"Listmonk request failed after retries: {last_exc}") from last_exc
+        raise ListmonkError(
+            f"Listmonk request failed after retries: {last_exc}"
+        ) from last_exc
 
     @staticmethod
     def _extract_results(data: Dict[str, Any]) -> List[Dict[str, Any]]:
