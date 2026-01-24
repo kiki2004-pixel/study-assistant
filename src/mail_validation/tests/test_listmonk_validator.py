@@ -1,6 +1,7 @@
-from pathlib import Path
+import os
 
 import pytest
+from sqlalchemy import create_engine, text
 
 from mail_validation.jobs.listmonk_validator import ListmonkValidatorJob
 from mail_validation.services.listmonk_client import ListmonkSubscriber
@@ -26,10 +27,21 @@ class FakeListmonkClient:
         return {"ok": True}
 
 
+@pytest.fixture()
+def db_url():
+    url = os.getenv("WATERMARK_DB_URL")
+    if not url:
+        pytest.skip("WATERMARK_DB_URL not set")
+    store = WatermarkStore(url)
+    engine = create_engine(url, future=True)
+    with engine.begin() as conn:
+        conn.execute(text("DELETE FROM listmonk_watermark"))
+    return url
+
+
 @pytest.mark.asyncio
-async def test_watermark_not_advanced_on_failure(tmp_path: Path):
-    db_path = tmp_path / "watermark.sqlite3"
-    store = WatermarkStore(db_path)
+async def test_watermark_not_advanced_on_failure(db_url):
+    store = WatermarkStore(db_url)
     initial = "2024-01-01T00:00:00Z"
     store.update_successful_run(
         list_id=1,
@@ -50,9 +62,8 @@ async def test_watermark_not_advanced_on_failure(tmp_path: Path):
 
 
 @pytest.mark.asyncio
-async def test_invalid_syntax_emails_unsubscribed(tmp_path: Path):
-    db_path = tmp_path / "watermark.sqlite3"
-    store = WatermarkStore(db_path)
+async def test_invalid_syntax_emails_unsubscribed(db_url):
+    store = WatermarkStore(db_url)
     pages = [
         [
             ListmonkSubscriber(id=1, email="bad-email", created_at="2024-01-02T00:00:00Z"),
@@ -69,9 +80,8 @@ async def test_invalid_syntax_emails_unsubscribed(tmp_path: Path):
 
 
 @pytest.mark.asyncio
-async def test_valid_emails_not_unsubscribed(tmp_path: Path):
-    db_path = tmp_path / "watermark.sqlite3"
-    store = WatermarkStore(db_path)
+async def test_valid_emails_not_unsubscribed(db_url):
+    store = WatermarkStore(db_url)
     pages = [
         [
             ListmonkSubscriber(id=10, email="a@example.com", created_at="2024-01-03T00:00:00Z"),
@@ -85,3 +95,17 @@ async def test_valid_emails_not_unsubscribed(tmp_path: Path):
 
     assert client.unsubscribed_ids == []
     assert summary[4] == 0
+
+
+def test_ensure_list_on_conflict(db_url):
+    store = WatermarkStore(db_url)
+    store.ensure_list(42)
+    store.ensure_list(42)
+
+    engine = create_engine(db_url, future=True)
+    with engine.begin() as conn:
+        count = conn.execute(
+            text("SELECT COUNT(*) FROM listmonk_watermark WHERE list_id = 42")
+        ).scalar_one()
+
+    assert count == 1

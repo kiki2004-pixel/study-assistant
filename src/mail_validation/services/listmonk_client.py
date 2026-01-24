@@ -8,7 +8,7 @@ import httpx
 
 DEFAULT_TIMEOUT_SECONDS = 15.0
 DEFAULT_MAX_RETRIES = 3
-RETRY_STATUSES = {429, 500, 502, 503, 504}
+HTTP_RETRY_STATUSES = {429, 500, 502, 503, 504}
 
 
 
@@ -135,7 +135,7 @@ class ListmonkClient:
         for attempt in range(1, self._max_retries + 1):
             try:
                 resp = await self._client.request(method, path, params=params, json=json)
-                if resp.status_code in RETRY_STATUSES:
+                if resp.status_code in HTTP_RETRY_STATUSES:
                     raise ListmonkError(
                         f"Listmonk transient error {resp.status_code}: {resp.text}"
                     )
@@ -149,7 +149,7 @@ class ListmonkClient:
             except httpx.HTTPStatusError as exc:
                 last_exc = exc
                 status = exc.response.status_code if exc.response else None
-                if status not in RETRY_STATUSES:
+                if status not in HTTP_RETRY_STATUSES:
                     raise ListmonkError(
                         f"Listmonk request failed: {status} {exc.response.text}"
                     ) from exc

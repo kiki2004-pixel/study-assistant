@@ -3,14 +3,13 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from mail_validation.services.listmonk_client import ListmonkClient
 from mail_validation.services.validation_service import validate_email_internal
+from mail_validation.settings import Settings, get_settings
 from mail_validation.storage.watermark_store import WatermarkStore
 
 logger = logging.getLogger(__name__)
@@ -157,40 +156,10 @@ class ListmonkValidatorJob:
         )
 
 
-def _env_int(name: str, default: int) -> int:
-    raw = os.getenv(name)
-    if not raw:
-        return default
-    try:
-        value = int(raw)
-    except ValueError:
-        return default
-    return value if value > 0 else default
-
-
-def _resolve_db_path() -> Path:
-    override = os.getenv("LISTMONK_WATERMARK_DB")
-    if override:
-        return Path(override)
-    return Path("data") / "listmonk_watermark.sqlite3"
-
-
-def _resolve_listmonk_env() -> Dict[str, object]:
-    base_url = os.getenv("LISTMONK_BASE_URL") or os.getenv("LISTMONK_URL") or ""
-    username = os.getenv("LISTMONK_USERNAME") or os.getenv("LISTMONK_USER") or ""
-    password = os.getenv("LISTMONK_PASSWORD") or os.getenv("LISTMONK_PASS") or ""
-    api_user = os.getenv("LISTMONK_API_USER") or ""
-    api_token = os.getenv("LISTMONK_API_TOKEN") or ""
-    list_id_raw = os.getenv("LISTMONK_LIST_ID", "")
-
-    return {
-        "base_url": base_url,
-        "username": username,
-        "password": password,
-        "api_user": api_user,
-        "api_token": api_token,
-        "list_id_raw": list_id_raw,
-    }
+def _resolve_db_url(settings: Settings) -> str:
+    if settings.watermark_db_url:
+        return settings.watermark_db_url
+    raise ValueError("WATERMARK_DB_URL is required")
 
 
 def _parse_list_ids(raw: str) -> Optional[Sequence[int]]:
@@ -208,8 +177,8 @@ def _parse_list_ids(raw: str) -> Optional[Sequence[int]]:
     return ids or None
 
 
-def _excluded_name_substrings() -> List[str]:
-    raw = os.getenv("LISTMONK_EXCLUDE_NAME_SUBSTRINGS", "test,sample")
+def _excluded_name_substrings(settings: Settings) -> List[str]:
+    raw = settings.listmonk_exclude_name_substrings or ""
     return [part.strip().lower() for part in raw.split(",") if part.strip()]
 
 
@@ -226,18 +195,19 @@ def _filter_lists(lists: Sequence[object], exclude_substrings: Sequence[str]):
     return included, excluded
 
 
-async def _run_once() -> RunSummary:
-    env = _resolve_listmonk_env()
-    store = WatermarkStore(_resolve_db_path())
-    batch_size = _env_int("VALIDATION_BATCH_SIZE", DEFAULT_BATCH_SIZE)
-    list_ids = _parse_list_ids(str(env["list_id_raw"]))
-    exclude_substrings = _excluded_name_substrings()
+async def _run_once(settings: Settings) -> RunSummary:
+    store = WatermarkStore(_resolve_db_url(settings))
+    batch_size = settings.validation_batch_size or DEFAULT_BATCH_SIZE
+    if batch_size <= 0:
+        batch_size = DEFAULT_BATCH_SIZE
+    list_ids = _parse_list_ids(str(settings.listmonk_list_id or ""))
+    exclude_substrings = _excluded_name_substrings(settings)
     async with ListmonkClient(
-        base_url=str(env["base_url"]),
-        username=str(env["username"]),
-        password=str(env["password"]),
-        api_user=str(env["api_user"]) or None,
-        api_token=str(env["api_token"]) or None,
+        base_url=str(settings.listmonk_url),
+        username=str(settings.listmonk_user or ""),
+        password=str(settings.listmonk_pass or ""),
+        api_user=str(settings.listmonk_api_user or "") or None,
+        api_token=str(settings.listmonk_api_token or "") or None,
     ) as client:
         lists = await client.fetch_lists()
         if list_ids:
@@ -289,9 +259,10 @@ async def _run_once() -> RunSummary:
 
 async def main() -> None:
     logging.basicConfig(level=logging.INFO)
-    poll_interval = _env_int("VALIDATION_POLL_INTERVAL_SECONDS", 0)
+    settings = get_settings()
+    poll_interval = settings.validation_poll_interval_seconds
     while True:
-        summary = await _run_once()
+        summary = await _run_once(settings)
         logger.info("Listmonk validation summary: %s", summary.as_dict())
         print(json.dumps(summary.as_dict()))
         if poll_interval <= 0:

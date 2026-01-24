@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import sqlite3
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Optional
+
+from sqlalchemy import BigInteger, Column, Integer, MetaData, Table, Text, create_engine, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 
 @dataclass(frozen=True)
@@ -14,114 +15,76 @@ class WatermarkState:
     unsubscribed_count: int
 
 
+metadata = MetaData()
+
+listmonk_watermark = Table(
+    "listmonk_watermark",
+    metadata,
+    Column("id", BigInteger, primary_key=True),
+    Column("list_id", BigInteger, nullable=False, unique=True),
+    Column("last_successful_created_at", Text, nullable=True),
+    Column("last_run_at", Text, nullable=True),
+    Column("processed_count", Integer, nullable=False, server_default="0"),
+    Column("unsubscribed_count", Integer, nullable=False, server_default="0"),
+)
+
+
 class WatermarkStore:
-    def __init__(self, db_path: Path) -> None:
-        self._db_path = db_path
-        self._db_path.parent.mkdir(parents=True, exist_ok=True)
+    def __init__(self, db_url: str) -> None:
+        if not db_url:
+            raise ValueError("WATERMARK_DB_URL is required")
+        self._engine = create_engine(db_url, future=True)
         self._init_db()
 
-    def _connect(self) -> sqlite3.Connection:
-        return sqlite3.connect(self._db_path)
-
     def _init_db(self) -> None:
-        with self._connect() as conn:
-            legacy_row = conn.execute(
-                "SELECT sql FROM sqlite_master WHERE type='table' AND name='listmonk_watermark'"
-            ).fetchone()
-            if legacy_row and legacy_row[0] and "CHECK (id = 1)" in legacy_row[0]:
-                conn.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS listmonk_watermark_new (
-                        id INTEGER PRIMARY KEY,
-                        list_id INTEGER NOT NULL,
-                        last_successful_created_at TEXT,
-                        last_run_at TEXT,
-                        processed_count INTEGER NOT NULL DEFAULT 0,
-                        unsubscribed_count INTEGER NOT NULL DEFAULT 0
-                    )
-                    """
-                )
-                conn.execute(
-                    """
-                    INSERT INTO listmonk_watermark_new
-                    (list_id, last_successful_created_at, last_run_at, processed_count, unsubscribed_count)
-                    SELECT 0, last_successful_created_at, last_run_at, processed_count, unsubscribed_count
-                    FROM listmonk_watermark
-                    """
-                )
-                conn.execute("DROP TABLE listmonk_watermark")
-                conn.execute("ALTER TABLE listmonk_watermark_new RENAME TO listmonk_watermark")
+        metadata.create_all(self._engine)
 
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS listmonk_watermark (
-                    id INTEGER PRIMARY KEY,
-                    list_id INTEGER NOT NULL,
-                    last_successful_created_at TEXT,
-                    last_run_at TEXT,
-                    processed_count INTEGER NOT NULL DEFAULT 0,
-                    unsubscribed_count INTEGER NOT NULL DEFAULT 0
-                )
-                """
-            )
-            columns = {
-                row[1] for row in conn.execute("PRAGMA table_info(listmonk_watermark)")
-            }
-            if "list_id" not in columns:
-                conn.execute(
-                    "ALTER TABLE listmonk_watermark ADD COLUMN list_id INTEGER NOT NULL DEFAULT 0"
-                )
-            conn.execute(
-                "CREATE UNIQUE INDEX IF NOT EXISTS idx_listmonk_watermark_list_id ON listmonk_watermark(list_id)"
-            )
-            conn.commit()
+    def _ensure_row(self, conn, list_id: int) -> None:
+        insert_stmt = (
+            pg_insert(listmonk_watermark)
+            .values(list_id=list_id)
+            .on_conflict_do_nothing(index_elements=[listmonk_watermark.c.list_id])
+            .returning(listmonk_watermark.c.id)
+        )
+        result = conn.execute(insert_stmt)
+        inserted = result.first() is not None
 
-    def _ensure_row(self, list_id: int) -> None:
-        with self._connect() as conn:
-            row = conn.execute(
-                "SELECT last_successful_created_at, last_run_at, processed_count, unsubscribed_count "
-                "FROM listmonk_watermark WHERE list_id = ?",
-                (list_id,),
-            ).fetchone()
-            if row:
-                conn.commit()
-                return
-
+        if inserted and list_id != 0:
             legacy = conn.execute(
-                "SELECT last_successful_created_at, last_run_at, processed_count, unsubscribed_count "
-                "FROM listmonk_watermark WHERE list_id = 0"
-            ).fetchone()
+                select(
+                    listmonk_watermark.c.last_successful_created_at,
+                    listmonk_watermark.c.last_run_at,
+                    listmonk_watermark.c.processed_count,
+                    listmonk_watermark.c.unsubscribed_count,
+                ).where(listmonk_watermark.c.list_id == 0)
+            ).first()
             if legacy:
                 conn.execute(
-                    """
-                    INSERT OR IGNORE INTO listmonk_watermark
-                    (list_id, last_successful_created_at, last_run_at, processed_count, unsubscribed_count)
-                    VALUES (?, ?, ?, ?, ?)
-                    """,
-                    (list_id, legacy[0], legacy[1], legacy[2], legacy[3]),
+                    update(listmonk_watermark)
+                    .where(listmonk_watermark.c.list_id == list_id)
+                    .values(
+                        last_successful_created_at=legacy[0],
+                        last_run_at=legacy[1],
+                        processed_count=legacy[2],
+                        unsubscribed_count=legacy[3],
+                    )
                 )
-            else:
-                conn.execute(
-                    "INSERT OR IGNORE INTO listmonk_watermark (list_id) VALUES (?)",
-                    (list_id,),
-                )
-            conn.commit()
 
     def ensure_list(self, list_id: int) -> None:
-        self._ensure_row(list_id)
+        with self._engine.begin() as conn:
+            self._ensure_row(conn, list_id)
 
     def get_state(self, list_id: int) -> WatermarkState:
-        self._ensure_row(list_id)
-        with self._connect() as conn:
+        with self._engine.begin() as conn:
+            self._ensure_row(conn, list_id)
             row = conn.execute(
-                """
-                SELECT last_successful_created_at, last_run_at, processed_count, unsubscribed_count
-                FROM listmonk_watermark
-                WHERE list_id = ?
-                """
-                ,
-                (list_id,),
-            ).fetchone()
+                select(
+                    listmonk_watermark.c.last_successful_created_at,
+                    listmonk_watermark.c.last_run_at,
+                    listmonk_watermark.c.processed_count,
+                    listmonk_watermark.c.unsubscribed_count,
+                ).where(listmonk_watermark.c.list_id == list_id)
+            ).first()
         if not row:
             return WatermarkState(None, None, 0, 0)
         return WatermarkState(
@@ -139,17 +102,17 @@ class WatermarkStore:
         processed_count: int,
         unsubscribed_count: int,
     ) -> None:
-        self._ensure_row(list_id)
-        with self._connect() as conn:
+        with self._engine.begin() as conn:
+            self._ensure_row(conn, list_id)
             conn.execute(
-                """
-                UPDATE listmonk_watermark
-                SET last_run_at = ?, processed_count = ?, unsubscribed_count = ?
-                WHERE list_id = ?
-                """,
-                (last_run_at, processed_count, unsubscribed_count, list_id),
+                update(listmonk_watermark)
+                .where(listmonk_watermark.c.list_id == list_id)
+                .values(
+                    last_run_at=last_run_at,
+                    processed_count=processed_count,
+                    unsubscribed_count=unsubscribed_count,
+                )
             )
-            conn.commit()
 
     def update_successful_run(
         self,
@@ -160,23 +123,15 @@ class WatermarkStore:
         processed_count: int,
         unsubscribed_count: int,
     ) -> None:
-        self._ensure_row(list_id)
-        with self._connect() as conn:
+        with self._engine.begin() as conn:
+            self._ensure_row(conn, list_id)
             conn.execute(
-                """
-                UPDATE listmonk_watermark
-                SET last_successful_created_at = ?,
-                    last_run_at = ?,
-                    processed_count = ?,
-                    unsubscribed_count = ?
-                WHERE list_id = ?
-                """,
-                (
-                    last_successful_created_at,
-                    last_run_at,
-                    processed_count,
-                    unsubscribed_count,
-                    list_id,
-                ),
+                update(listmonk_watermark)
+                .where(listmonk_watermark.c.list_id == list_id)
+                .values(
+                    last_successful_created_at=last_successful_created_at,
+                    last_run_at=last_run_at,
+                    processed_count=processed_count,
+                    unsubscribed_count=unsubscribed_count,
+                )
             )
-            conn.commit()
