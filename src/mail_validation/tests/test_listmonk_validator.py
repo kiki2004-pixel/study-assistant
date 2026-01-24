@@ -34,7 +34,6 @@ def db_url():
     url = os.getenv("WATERMARK_DB_URL")
     if not url:
         pytest.skip("WATERMARK_DB_URL not set")
-    store = WatermarkStore(url)
     engine = create_engine(url, future=True)
     with engine.begin() as conn:
         conn.execute(text("DELETE FROM listmonk_watermark"))
