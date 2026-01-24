@@ -7,12 +7,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - LISTMONK_URL=${LISTMONK_URL}
-      - LISTMONK_PASS=${LISTMONK_PASS}
-      - MAILS_SO_API_KEY=${MAILS_SO_API_KEY}
-      - POSTMARK_WEBHOOK_SECRET=${POSTMARK_WEBHOOK_SECRET}
+      - LISTMONK_URL=${LISTMONK_URL:-}
+      - LISTMONK_PASS=${LISTMONK_PASS:-}
       - AGENT_NAME=mail-validation-service
     restart: unless-stopped
+    depends_on:
+      - listmonk_app
 
   prometheus:
     image: prom/prometheus:latest
@@ -38,3 +38,75 @@ services:
       - ./data/grafana:/var/lib/grafana # Moved to data subfolder
     restart: unless-stopped
 
+  listmonk_app:
+    image: listmonk/listmonk:latest
+    container_name: listmonk_app
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    depends_on:
+      - listmonk_db
+    command:
+      [
+        "sh",
+        "-c",
+        "./listmonk --install --idempotent --yes --config '' && ./listmonk --upgrade --yes --config '' && ./listmonk --config ''",
+      ]
+    environment:
+      LISTMONK_app__address: 0.0.0.0:9000
+      LISTMONK_db__user: listmonk
+      LISTMONK_db__password: listmonk
+      LISTMONK_db__database: listmonk
+      LISTMONK_db__host: listmonk_db
+      LISTMONK_db__port: 5432
+      LISTMONK_db__ssl_mode: disable
+      LISTMONK_db__max_open: 25
+      LISTMONK_db__max_idle: 25
+      LISTMONK_db__max_lifetime: 300s
+      TZ: Etc/UTC
+      LISTMONK_ADMIN_USER: ${LISTMONK_ADMIN_USER:-}
+      LISTMONK_ADMIN_PASSWORD: ${LISTMONK_ADMIN_PASSWORD:-}
+    volumes:
+      - ./data/listmonk/uploads:/listmonk/uploads:rw
+    networks:
+      default:
+        aliases:
+          - listmonk
+
+  listmonk_db:
+    image: postgres:17-alpine
+    container_name: listmonk_db
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_USER: listmonk
+      POSTGRES_PASSWORD: listmonk
+      POSTGRES_DB: listmonk
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U listmonk"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    volumes:
+      - ./data/listmonk/db:/var/lib/postgresql/data
+
+  listmonk-validator:
+    build: .
+    image: pixel/mail-validation-service:latest
+    depends_on:
+      - listmonk_app
+    environment:
+      - PYTHONPATH=/app/src
+      - LISTMONK_BASE_URL=http://listmonk:9000
+      - LISTMONK_API_USER=${LISTMONK_API_USER:-}
+      - LISTMONK_API_TOKEN=${LISTMONK_API_TOKEN:-}
+      - LISTMONK_LIST_ID=${LISTMONK_LIST_ID:-}
+      - LISTMONK_EXCLUDE_NAME_SUBSTRINGS=${LISTMONK_EXCLUDE_NAME_SUBSTRINGS:-}
+      - VALIDATION_BATCH_SIZE=${VALIDATION_BATCH_SIZE:-}
+      - VALIDATION_POLL_INTERVAL_SECONDS=${VALIDATION_POLL_INTERVAL_SECONDS:-}
+      - LISTMONK_WATERMARK_DB=/app/data/listmonk_watermark.sqlite3
+    volumes:
+      - ./data:/app/data
+    command: ["/app/.venv/bin/python", "-m", "mail_validation.jobs.listmonk_validator"]
+    restart: unless-stopped

@@ -1,50 +1,92 @@
 # Mail-Validator
-A high-performance FastAPI microservice designed to protect mail server reputation. It listens to Postmark webhooks, verifies email quality.
+FastAPI service that performs syntax-only email validation and can automate Listmonk list hygiene.
 
-## 🚀 The Workflow
-Trigger: Postmark sends a webhook event (Bounce or Spam Complaint) to this service.
-Verify: The service verifies if the email is truly undeliverable.
-Action: If invalid, the service calls the Listmonk API to move the email to the Blacklist.
-Monitor: All actions are sent to Prometheus and visualized on a Grafana dashboard.
+## What it does
+- Provides HTTP endpoints to validate single emails or bulk lists (syntax-only).
+- Optionally runs a Listmonk job that fetches new subscribers, validates syntax, and unsubscribes invalid emails.
+- Uses a watermark (created_at + id) so each Listmonk run only processes new subscribers.
 
-## 🛠 Features
-Real-time Blacklisting: Instant processing of Postmark bounce events.
-Smart Validation: Double-checks suspicious emails before blocking to avoid false positives.
-Grafana Observability: Built-in metrics tracking for "Who, When, and Why" regarding blocked emails.
-Client Isolation: Track metrics per client/source (e.g., Fusertech) using Prometheus labels.
+## API
+### POST /validation/validate-single
+Query params:
+- email
 
-## 📊 Metrics & Labels
-The service exposes a /metrics endpoint for Grafana with the following labels:
-reason: Why it was blocked (e.g., hard_bounce, spam, invalid_mailbox).
-source_list: Which client/list the email belonged to (e.g., fusertech_list).
-postmark_event_type: The raw event from Postmark (e.g., Bounce, SpamComplaint).
+Returns a validation response. Invalid syntax returns HTTP 422 with a structured error.
 
-## ⚙️ Environment Configuration
-### Create a .env file in the root directory:
-env
-### API Keys
-POSTMARK_WEBHOOK_SECRET=your_postmark_secret
-MAILS_SO_API_KEY=your_mails_so_key
+### POST /validation/validate-bulk
+Request body:
+```
+{
+  "emails": ["a@example.com", "b@example.com"],
+  "response_mode": "all" | "invalid_only" | "summary_only",
+  "dedupe": false
+}
+```
 
-### Listmonk Connection
-LISTMONK_URL=https://your-listmonk-instance.com
-LISTMONK_USER=admin
-LISTMONK_PASS=your_secure_password
+## Listmonk syntax validation job
+This job fetches new subscribers (watermark-based), validates syntax only, and unsubscribes invalid emails in bulk.
 
-## 🏗 Setup & Installation
- **Initialize Environment:**
-bash
-python -m venv venv
-source venv/bin/activate
-pip install fastapi uvicorn prometheus-fastapi-instrumentator requests
+### Required env vars (API token recommended)
+- LISTMONK_BASE_URL
+- LISTMONK_API_USER
+- LISTMONK_API_TOKEN
 
- **Run Service:**
-**Option A Full Stack (App + Monitoring)**
+Compatibility: LISTMONK_URL / LISTMONK_USER / LISTMONK_PASS are also accepted for BasicAuth.
 
-bash
-docker compose up -d
+### Optional env vars
+- LISTMONK_LIST_ID (comma-separated IDs; when set, name-based exclusions are ignored)
+- LISTMONK_EXCLUDE_NAME_SUBSTRINGS (default: test,sample)
+- VALIDATION_BATCH_SIZE (default: 250)
+- VALIDATION_POLL_INTERVAL_SECONDS (default: 300; 0 runs once)
+- LISTMONK_WATERMARK_DB (default: data/listmonk_watermark.sqlite3)
 
-**Option B Local Development**
+### Run once
+```
+python -m mail_validation.jobs.listmonk_validator
+```
 
-bash
-uv run fastapi dev --reload --port 3000 src/main.py 
+### Run continuously (polling)
+```
+VALIDATION_POLL_INTERVAL_SECONDS=300 python -m mail_validation.jobs.listmonk_validator
+```
+
+## Local development
+### Run the API
+```
+uv run fastapi dev --reload --port 3000 src/main.py
+```
+
+### Local Listmonk (for integration testing)
+This repo includes a Listmonk + Postgres setup in `docker-compose.yml`.
+
+1) Add to `.env`
+```
+LISTMONK_ADMIN_USER=admin
+LISTMONK_ADMIN_PASSWORD=admin123
+LISTMONK_BASE_URL=http://listmonk:9000
+LISTMONK_LIST_ID=1
+```
+
+2) Start services
+```
+docker compose up -d listmonk_db listmonk_app
+```
+
+3) Initialize & create a list
+- Open http://localhost:9000 and log in with LISTMONK_ADMIN_USER / LISTMONK_ADMIN_PASSWORD
+- Create a list and note its ID
+- Update LISTMONK_LIST_ID if needed
+
+4) Create an API user and token
+- In Listmonk UI: Admin -> Users -> New user
+- Assign a role with subscriber read + list membership update permissions
+- Copy the token and set:
+```
+LISTMONK_API_USER=validator
+LISTMONK_API_TOKEN=your_api_token
+```
+
+5) Run the validation job
+```
+python -m mail_validation.jobs.listmonk_validator
+```

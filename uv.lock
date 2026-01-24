@@ -1221,7 +1221,7 @@ wheels = [
 
 [[package]]
 name = "mail-validation-service"
-version = "2026.11.3"
+version = "2026.1.4"
 source = { virtual = "." }
 dependencies = [
     { name = "alembic" },
