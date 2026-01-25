@@ -38,7 +38,7 @@ Compatibility: LISTMONK_URL / LISTMONK_USER / LISTMONK_PASS are also accepted fo
 - LISTMONK_EXCLUDE_NAME_SUBSTRINGS (default: test,sample)
 - VALIDATION_BATCH_SIZE (default: 250)
 - VALIDATION_POLL_INTERVAL_SECONDS (default: 300; 0 runs once)
-- LISTMONK_WATERMARK_DB (default: data/listmonk_watermark.sqlite3)
+- WATERMARK_DB_URL (required, Postgres URL for watermark storage)
 
 ### Run once
 ```
@@ -89,4 +89,10 @@ LISTMONK_API_TOKEN=your_api_token
 5) Run the validation job
 ```
 python -m mail_validation.jobs.listmonk_validator
+```
+
+## Migrations
+Alembic manages the watermark schema. Set `WATERMARK_DB_URL` and run:
+```
+alembic upgrade head
 ```

@@ -105,8 +105,6 @@ services:
       - LISTMONK_EXCLUDE_NAME_SUBSTRINGS=${LISTMONK_EXCLUDE_NAME_SUBSTRINGS:-}
       - VALIDATION_BATCH_SIZE=${VALIDATION_BATCH_SIZE:-}
       - VALIDATION_POLL_INTERVAL_SECONDS=${VALIDATION_POLL_INTERVAL_SECONDS:-}
-      - LISTMONK_WATERMARK_DB=/app/data/listmonk_watermark.sqlite3
-    volumes:
-      - ./data:/app/data
+      - WATERMARK_DB_URL=postgresql+psycopg2://listmonk:listmonk@listmonk_db:5432/listmonk
     command: ["/app/.venv/bin/python", "-m", "mail_validation.jobs.listmonk_validator"]
     restart: unless-stopped

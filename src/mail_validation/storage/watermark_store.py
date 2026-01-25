@@ -44,10 +44,6 @@ class WatermarkStore:
         if not db_url:
             raise ValueError("WATERMARK_DB_URL is required")
         self._engine = create_engine(db_url, future=True)
-        self._init_db()
-
-    def _init_db(self) -> None:
-        metadata.create_all(self._engine)
 
     def _ensure_row(self, conn, list_id: int) -> None:
         insert_stmt = (

@@ -34,10 +34,6 @@ class Settings(BaseSettings):
         default="test,sample",
         validation_alias=AliasChoices("LISTMONK_EXCLUDE_NAME_SUBSTRINGS"),
     )
-    listmonk_watermark_db: Optional[str] = Field(
-        default=None,
-        validation_alias=AliasChoices("LISTMONK_WATERMARK_DB"),
-    )
     watermark_db_url: Optional[str] = Field(
         default=None,
         validation_alias=AliasChoices("WATERMARK_DB_URL"),
