@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, text
 
 from mail_validation.jobs.listmonk_validator import ListmonkValidatorJob
 from mail_validation.services.listmonk_client import ListmonkSubscriber
-from mail_validation.storage.watermark_store import WatermarkStore
+from mail_validation.storage.watermark_store import WatermarkStore, metadata
 
 
 class FakeListmonkClient:
@@ -35,6 +35,7 @@ def db_url():
     if not url:
         pytest.skip("WATERMARK_DB_URL not set")
     engine = create_engine(url, future=True)
+    metadata.create_all(engine)
     with engine.begin() as conn:
         conn.execute(text("DELETE FROM listmonk_watermark"))
     return url
