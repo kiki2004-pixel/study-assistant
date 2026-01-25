@@ -30,6 +30,7 @@ def test_multiple_at_rejected():
     assert response.status_code == 422
     assert response.json()["detail"]["reason"] == "multiple_at"
 
+
 def test_validate_bulk_summary_only():
     payload = {
         "emails": ["good@example.com", "bad-email", "a@@example.com"],
@@ -64,6 +65,7 @@ def test_validate_bulk_rejects_over_limit():
     r = client.post("/validation/validate-bulk", json=payload)
     assert r.status_code == 422  # Pydantic validation error
 
+
 def test_bulk_does_not_fail_on_internal_error(monkeypatch):
     import mail_validation.routers.validation_router as vr
 
@@ -91,9 +93,16 @@ def test_bulk_does_not_fail_on_internal_error(monkeypatch):
     assert data["summary"]["errors"] == 1
     assert any(x["status"] == "error" for x in data["results"])
 
+
 def test_validate_bulk_dedupe_removes_duplicates():
     payload = {
-        "emails": ["a@example.com", "a@example.com", "b@example.com", "b@example.com", "c@example.com"],
+        "emails": [
+            "a@example.com",
+            "a@example.com",
+            "b@example.com",
+            "b@example.com",
+            "c@example.com",
+        ],
         "response_mode": "summary_only",
         "dedupe": True,
     }

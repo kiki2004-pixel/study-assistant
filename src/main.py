@@ -2,7 +2,6 @@ import tomllib
 from pathlib import Path
 from fastapi import FastAPI
 from mail_validation.routers.validation_router import router as validation_router
-from mail_validation.routers.postmark_router import router as postmark_router
 from prometheus_fastapi_instrumentator import Instrumentator
 
 CURRENT_DIR = Path(__file__).resolve().parent
@@ -23,8 +22,4 @@ Instrumentator().instrument(app).expose(app)
 # Validation Endpoint: /validation/validate-single
 app.include_router(
     router=validation_router, prefix="/validation", tags=["Email Validation"]
-)
-
-app.include_router(
-    router=postmark_router, prefix="/webhooks", tags=["Postmark Webhooks"]
 )

@@ -16,22 +16,18 @@ LABEL \
     vcs-ref="$GIT_COMMIT" \
     version="$APP_VERSION"
 
-
-
-# Install system deps (Cached)
 RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
 
 
-# Install uv.
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-
+# Install dependencies with caching.
+WORKDIR /app
+COPY pyproject.toml uv.lock /app/
+RUN python -m pip install --no-cache-dir --upgrade pip \
+    && python -m pip install --no-cache-dir uv \
+    && uv sync --frozen
 
 # Copy the application into the container.
 COPY . /app
 
-WORKDIR /app
-RUN uv sync --frozen
-
 
 CMD ["/app/.venv/bin/fastapi", "run", "/app/src/main.py", "--port", "80", "--host", "0.0.0.0"]
-

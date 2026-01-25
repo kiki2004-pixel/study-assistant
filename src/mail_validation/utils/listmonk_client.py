@@ -1,7 +1,7 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import requests
 from requests import Response
-from mail_validation.settings import settings
+from mail_validation.settings import Settings, get_settings
 
 DEFAULT_TIMEOUT = 10
 
@@ -19,13 +19,18 @@ def _raise_for_status(resp: Response) -> None:
         raise ListmonkError(f"Listmonk API error: {e} - {resp.text}") from e
 
 
-def block_email(email: str, reason: str = None) -> Dict[str, Any]:
+def block_email(
+    email: str,
+    reason: str = None,
+    settings: Optional[Settings] = None,
+) -> Dict[str, Any]:
     """
     Adds `email` to Listmonk's global blocklist using settings from settings.py.
     """
 
-    api_url = settings.listmonk_url
-    api_key = settings.listmonk_pass
+    resolved_settings = settings or get_settings()
+    api_url = resolved_settings.listmonk_url
+    api_key = resolved_settings.listmonk_pass
 
     if not api_key:
         raise ListmonkError("LISTMONK_PASS (listmonk_pass) is not set in settings")

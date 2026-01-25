@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+
 @router.post("/validate-single", response_model=ValidationResponse)
 async def validate_only(
     email: str = Query(..., description="The email address to verify"),

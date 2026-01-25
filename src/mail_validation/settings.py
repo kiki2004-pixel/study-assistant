@@ -1,15 +1,63 @@
+from functools import lru_cache
+from typing import Optional
+
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    listmonk_url: str = "http://localhost:9000"
-    listmonk_user: str
-    listmonk_pass: str
-
-    # This is the value you must use in your Postmark header
-    postmark_webhook_secret: str
+    listmonk_url: str = Field(
+        default="http://localhost:9000",
+        validation_alias=AliasChoices("LISTMONK_BASE_URL", "LISTMONK_URL"),
+    )
+    listmonk_user: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("LISTMONK_USERNAME", "LISTMONK_USER"),
+    )
+    listmonk_pass: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("LISTMONK_PASSWORD", "LISTMONK_PASS"),
+    )
+    listmonk_api_user: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("LISTMONK_API_USER"),
+    )
+    listmonk_api_token: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("LISTMONK_API_TOKEN"),
+    )
+    listmonk_list_id: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("LISTMONK_LIST_ID"),
+    )
+    listmonk_exclude_name_substrings: str = Field(
+        default="test,sample",
+        validation_alias=AliasChoices("LISTMONK_EXCLUDE_NAME_SUBSTRINGS"),
+    )
+    listmonk_watermark_db: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("LISTMONK_WATERMARK_DB"),
+    )
+    watermark_db_url: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("WATERMARK_DB_URL"),
+    )
+    validation_batch_size: int = Field(
+        default=250,
+        validation_alias=AliasChoices("VALIDATION_BATCH_SIZE"),
+    )
+    validation_poll_interval_seconds: int = Field(
+        default=0,
+        validation_alias=AliasChoices("VALIDATION_POLL_INTERVAL_SECONDS"),
+    )
+    postmark_webhook_secret: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("POSTMARK_WEBHOOK_SECRET"),
+    )
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
-settings = Settings()
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

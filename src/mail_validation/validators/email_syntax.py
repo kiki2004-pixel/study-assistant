@@ -9,13 +9,13 @@ from pydantic import EmailStr, TypeAdapter, ValidationError
 @dataclass(frozen=True)
 class EmailSyntaxResult:
     valid: bool
-    reason: Optional[str] = None  
-    message: Optional[str] = None  
+    reason: Optional[str] = None
+    message: Optional[str] = None
 
 
 _EMAIL_ADAPTER = TypeAdapter(EmailStr)
 
-_MAX_EMAIL_LENGTH = 320 
+_MAX_EMAIL_LENGTH = 320
 
 
 def validate_email_syntax(email: str) -> EmailSyntaxResult:
@@ -33,24 +33,34 @@ def validate_email_syntax(email: str) -> EmailSyntaxResult:
 
     # Reject whitespace
     if any(ch.isspace() for ch in email):
-        return EmailSyntaxResult(False, "contains_whitespace", "Email contains whitespace.")
+        return EmailSyntaxResult(
+            False, "contains_whitespace", "Email contains whitespace."
+        )
 
     # Must contain exactly one "@"
     at_count = e.count("@")
     if at_count == 0:
         return EmailSyntaxResult(False, "missing_at", "Email must contain '@'.")
     if at_count > 1:
-        return EmailSyntaxResult(False, "multiple_at", "Email must contain only one '@'.")
+        return EmailSyntaxResult(
+            False, "multiple_at", "Email must contain only one '@'."
+        )
 
     local, domain = e.split("@", 1)
     if local == "":
-        return EmailSyntaxResult(False, "missing_local", "Missing local part before '@'.")
+        return EmailSyntaxResult(
+            False, "missing_local", "Missing local part before '@'."
+        )
     if domain == "":
-        return EmailSyntaxResult(False, "missing_domain", "Missing domain part after '@'.")
+        return EmailSyntaxResult(
+            False, "missing_domain", "Missing domain part after '@'."
+        )
 
     # Practical domain sanity
     if domain.startswith(".") or domain.endswith(".") or ".." in domain:
-        return EmailSyntaxResult(False, "invalid_domain", "Domain has invalid dot placement.")
+        return EmailSyntaxResult(
+            False, "invalid_domain", "Domain has invalid dot placement."
+        )
 
     # Optional business rule (recommended for public email validation):
     if "." not in domain:
@@ -60,6 +70,8 @@ def validate_email_syntax(email: str) -> EmailSyntaxResult:
     try:
         _EMAIL_ADAPTER.validate_python(e)
     except ValidationError as err:
-        return EmailSyntaxResult(False, "invalid_format", f"Invalid email format: {err}")
+        return EmailSyntaxResult(
+            False, "invalid_format", f"Invalid email format: {err}"
+        )
 
     return EmailSyntaxResult(True)
