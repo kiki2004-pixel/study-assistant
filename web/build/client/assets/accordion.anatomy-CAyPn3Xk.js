@@ -1,0 +1,1 @@
+import{c as a}from"./create-anatomy-BgxHbLYw.js";var t=a("collapsible").parts("root","trigger","content","indicator"),i=t.build(),r=a("accordion").parts("root","item","itemTrigger","itemContent","itemIndicator"),e=r.build();export{r as a,t as b,e as c,i as p};
