@@ -9,10 +9,32 @@ services:
     environment:
       - LISTMONK_URL=${LISTMONK_URL:-}
       - LISTMONK_PASS=${LISTMONK_PASS:-}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
       - AGENT_NAME=mail-validation-service
     restart: unless-stopped
     depends_on:
       - listmonk_app
+      - redis
+
+  redis:
+    image: redis:latest
+    container_name: mail_validation_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  celery-worker:
+    build: .
+    image: pixel/mail-validation-service:latest
+    depends_on:
+      - redis
+    environment:
+      - PYTHONPATH=/app/src
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+    command: ["/app/.venv/bin/python", "-m", "celery", "-A", "mail_validation.jobs.listmonk_validator.celery_app", "worker", "--loglevel=info"]
+    restart: unless-stopped
 
   prometheus:
     image: prom/prometheus:latest
@@ -96,6 +118,7 @@ services:
     image: pixel/mail-validation-service:latest
     depends_on:
       - listmonk_app
+      - redis
     environment:
       - PYTHONPATH=/app/src
       - LISTMONK_BASE_URL=http://listmonk:9000
@@ -105,6 +128,8 @@ services:
       - LISTMONK_EXCLUDE_NAME_SUBSTRINGS=${LISTMONK_EXCLUDE_NAME_SUBSTRINGS:-}
       - VALIDATION_BATCH_SIZE=${VALIDATION_BATCH_SIZE:-}
       - VALIDATION_POLL_INTERVAL_SECONDS=${VALIDATION_POLL_INTERVAL_SECONDS:-}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
       - WATERMARK_DB_URL=postgresql+psycopg2://listmonk:listmonk@listmonk_db:5432/listmonk
     command: ["/app/.venv/bin/python", "-m", "mail_validation.jobs.listmonk_validator"]
     restart: unless-stopped

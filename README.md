@@ -38,6 +38,9 @@ Compatibility: LISTMONK_URL / LISTMONK_USER / LISTMONK_PASS are also accepted fo
 - LISTMONK_EXCLUDE_NAME_SUBSTRINGS (default: test,sample)
 - VALIDATION_BATCH_SIZE (default: 250)
 - VALIDATION_POLL_INTERVAL_SECONDS (default: 300; 0 runs once)
+- CELERY_BROKER_URL (default: redis://localhost:6379/0)
+- CELERY_RESULT_BACKEND (default: CELERY_BROKER_URL)
+- CELERY_RESTART_DELAY_SECONDS (default: 10)
 - WATERMARK_DB_URL (required, Postgres URL for watermark storage)
 
 ### Run once
@@ -48,6 +51,22 @@ python -m mail_validation.jobs.listmonk_validator
 ### Run continuously (polling)
 ```
 VALIDATION_POLL_INTERVAL_SECONDS=300 python -m mail_validation.jobs.listmonk_validator
+```
+
+### Run continuously (Celery + Redis)
+Start Redis:
+```
+docker run --rm --name some-redis -p 6379:6379 redis:latest
+```
+
+Start a worker:
+```
+uv run celery -A mail_validation.jobs.listmonk_validator.celery_app worker --loglevel=info
+```
+
+Kick off the first cycle (the task reschedules itself):
+```
+uv run celery -A mail_validation.jobs.listmonk_validator.celery_app call mail_validation.listmonk.run_cycle
 ```
 
 ## Local development
