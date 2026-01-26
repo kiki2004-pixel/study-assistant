@@ -1,6 +1,6 @@
 [project]
 name = "mail-validation-service"
-version = "2026.01.006"
+version = "2026.01.007"
 description = "AI backend responsible for receiving, validating and blacklisting invalid emails for clients"
 readme = "README.md"
 requires-python = ">=3.12"
