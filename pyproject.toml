@@ -1,6 +1,6 @@
 [project]
 name = "mail-validation-service"
-version = "2026.01.008"
+version = "2026.01.009"
 description = "AI backend responsible for receiving, validating and blacklisting invalid emails for clients"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -27,6 +27,7 @@ dependencies = [
     "prometheus-client>=0.20.0",
     "prometheus-fastapi-instrumentator>=7.0.0",
     "celery[redis]>=5.6.2",
+    "celery-types==0.24.0",
 ]
 
 [dependency-groups]
