@@ -46,6 +46,18 @@ class Settings(BaseSettings):
         default=0,
         validation_alias=AliasChoices("VALIDATION_POLL_INTERVAL_SECONDS"),
     )
+    celery_broker_url: str = Field(
+        default="redis://localhost:6379/0",
+        validation_alias=AliasChoices("CELERY_BROKER_URL"),
+    )
+    celery_result_backend: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("CELERY_RESULT_BACKEND"),
+    )
+    celery_restart_delay_seconds: int = Field(
+        default=10,
+        validation_alias=AliasChoices("CELERY_RESTART_DELAY_SECONDS"),
+    )
     postmark_webhook_secret: Optional[str] = Field(
         default=None,
         validation_alias=AliasChoices("POSTMARK_WEBHOOK_SECRET"),

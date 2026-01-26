@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
+from celery import Celery
 from mail_validation.services.listmonk_client import ListmonkClient
 from mail_validation.services.validation_service import validate_email_internal
 from mail_validation.settings import Settings, get_settings
@@ -16,6 +17,17 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_WATERMARK = "1970-01-01T00:00:00Z"
 DEFAULT_BATCH_SIZE = 250
+DEFAULT_RESTART_DELAY_SECONDS = 10
+
+
+settings_for_celery = get_settings()
+celery_app = Celery(
+    "mail_validation.listmonk",
+    broker=settings_for_celery.celery_broker_url,
+    backend=settings_for_celery.celery_result_backend
+    or settings_for_celery.celery_broker_url,
+)
+celery_app.conf.update(broker_connection_retry_on_startup=True)
 
 
 def _utc_now_iso() -> str:
@@ -278,3 +290,15 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+
+@celery_app.task(name="mail_validation.listmonk.run_cycle", bind=True)
+def run_cycle(self) -> Dict[str, object]:
+    logging.basicConfig(level=logging.INFO)
+    settings = get_settings()
+    summary = asyncio.run(_run_once(settings))
+    logger.info("Listmonk validation summary: %s", summary.as_dict())
+    interval = settings.validation_poll_interval_seconds or 0
+    delay = max(settings.celery_restart_delay_seconds, interval)
+    self.apply_async(countdown=delay)
+    return summary.as_dict()

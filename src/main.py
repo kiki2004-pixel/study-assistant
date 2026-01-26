@@ -4,6 +4,8 @@ from fastapi import FastAPI
 from mail_validation.routers.validation_router import router as validation_router
 from prometheus_fastapi_instrumentator import Instrumentator
 
+from mail_validation.jobs.listmonk_validator import run_cycle
+
 CURRENT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = CURRENT_DIR.parent
 pyproject_path = PROJECT_ROOT / "pyproject.toml"
@@ -23,3 +25,8 @@ Instrumentator().instrument(app).expose(app)
 app.include_router(
     router=validation_router, prefix="/validation", tags=["Email Validation"]
 )
+
+
+@app.on_event("startup")
+async def _kickoff_listmonk_validation() -> None:
+    run_cycle.apply_async()
