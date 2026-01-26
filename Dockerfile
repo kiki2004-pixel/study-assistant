@@ -30,4 +30,4 @@ RUN python -m pip install --no-cache-dir --upgrade pip \
 COPY . /app
 
 
-#CMD ["/app/.venv/bin/fastapi", "run", "/app/src/main.py", "--port", "80", "--host", "0.0.0.0"]
+CMD ["/app/.venv/bin/fastapi", "run", "/app/src/main.py", "--port", "80", "--host", "0.0.0.0"]
