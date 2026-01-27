@@ -1,3 +1,4 @@
+validation_router.py
 from fastapi import APIRouter, HTTPException, Query
 from time import perf_counter
 import asyncio
@@ -93,12 +94,12 @@ async def validate_bulk(payload: BulkValidationRequest):
                 results.append(item)
             continue
 
-        if not r["ok"] and r.get("layer") == "syntax":
+        if not r["ok"]:
             invalid_count += 1
             item = BulkEmailResult(
                 email=email,
                 valid=False,
-                status="undeliverable",
+                status=r.get("status", "undeliverable"),
                 reason=r.get("reason"),
                 layer=r.get("layer"),
                 details=r.get("details") or {},

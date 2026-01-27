@@ -1,3 +1,4 @@
+settings.py
 from functools import lru_cache
 from typing import Optional
 
@@ -61,6 +62,14 @@ class Settings(BaseSettings):
     postmark_webhook_secret: Optional[str] = Field(
         default=None,
         validation_alias=AliasChoices("POSTMARK_WEBHOOK_SECRET"),
+    )
+    mx_check_enabled: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("MX_CHECK_ENABLED"),
+    )
+    mx_timeout_seconds: float = Field(
+        default=2.0,
+        validation_alias=AliasChoices("MX_TIMEOUT_SECONDS"),
     )
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

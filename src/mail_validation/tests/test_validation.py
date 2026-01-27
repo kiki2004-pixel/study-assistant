@@ -1,9 +1,11 @@
+test_validation.py
 import os
 
 os.environ["LISTMONK_URL"] = "http://localhost"
 os.environ["LISTMONK_USER"] = "test"
 os.environ["LISTMONK_PASS"] = "test"
 os.environ["POSTMARK_WEBHOOK_SECRET"] = "test"  # needed for settings init
+os.environ["MX_CHECK_ENABLED"] = "false"
 
 from fastapi.testclient import TestClient
 from main import app
@@ -14,7 +16,7 @@ client = TestClient(app)
 def test_valid_email_passes_syntax():
     response = client.post("/validation/validate-single?email=good@example.com")
     assert response.status_code == 200
-    assert response.json()["status"] == "unknown"  # until DNS layer exists
+    assert response.json()["status"] == "unknown"  # MX checks disabled in tests
 
 
 def test_invalid_email_format_rejected():
@@ -123,3 +125,25 @@ def test_validate_bulk_dedupe_removes_duplicates():
     assert summary["valid"] == 3
     assert summary["invalid"] == 0
     assert summary["errors"] == 0
+
+
+def test_mx_undeliverable_returns_200(monkeypatch):
+    from mail_validation.validators.email_mx import EmailMxResult
+    import mail_validation.services.validation_service as vs
+
+    monkeypatch.setattr(
+        vs,
+        "validate_email_mx",
+        lambda domain: EmailMxResult(
+            ok=False,
+            status="undeliverable",
+            reason="mx_not_found",
+            message="No MX records found.",
+        ),
+    )
+
+    response = client.post("/validation/validate-single?email=good@example.com")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "undeliverable"
+    assert data["reason"] == "mx_not_found"
