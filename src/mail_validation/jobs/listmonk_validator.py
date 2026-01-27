@@ -176,7 +176,8 @@ def _parse_list_ids(raw: str) -> Optional[Sequence[int]]:
     ids: List[int] = []
     for part in raw.split(","):
         part = part.strip()
-        if not part: continue
+        if not part:
+            continue
         try:
             ids.append(int(part))
         except ValueError as exc:
@@ -225,7 +226,8 @@ async def _run_once(settings: Settings) -> RunSummary:
 
         for lst in included:
             w_b, w_a, f, c, u, e = await job.run_once(lst.id)
-            res["b"][lst.id], res["a"][lst.id] = w_b, w_a
+            res["b"][lst.id],
+            res["a"][lst.id] = w_b, w_a
             res["f"] += f; res["c"] += c; res["u"] += u; res["e"] += e
 
         return RunSummary(
