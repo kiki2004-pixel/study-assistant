@@ -1,30 +1,34 @@
-from pydantic_settings import BaseSettings
-from typing import Optional
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from functools import lru_cache
 
 class Settings(BaseSettings):
-    # Your existing settings fields...
+    # App General Settings
     APP_NAME: str = "Mail Validation Service"
     DEBUG: bool = False
-    
-    class Config:
-        env_file = ".env"
 
-# Create settings instance
-_settings = Settings()
+    # Listmonk Integration 
+    listmonk_url: str = "http://localhost:9000"
+    listmonk_user: str = ""
+    listmonk_pass: str = ""
+    listmonk_list_id: str = "" 
+    listmonk_exclude_name_substrings: str = ""
 
-def get_settings():
-    """
-    Returns the settings instance. Logic that requires the validator 
-    must import it locally inside the function to avoid circular imports.
-    """
-    return _settings
+    # Worker / Celery Settings
+    celery_broker_url: str = "redis://localhost:6379/0"
+    celery_result_backend: str = "redis://localhost:6379/0"
+    watermark_db_url: str = "sqlite:///./watermarks.db"
+    validation_batch_size: int = 250
 
-def some_config_validation_logic(email: str):
+    # Use the 2026 model_config style
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+@lru_cache()
+def get_settings() -> Settings:
     """
-    Example of a function in settings that needs validation.
-    We move the import INSIDE this function.
+    Uses lru_cache to ensure we only load the .env file once,
+    improving performance for the 30,000 monthly checks.
     """
-    # FIX: Lazy import breaks the circular dependency loop
-    from mail_validation.services.validation_service import validate_email_internal
-    
-    return validate_email_internal(email)
+    return Settings()
+
+# Standard instance for easy access
+settings = get_settings()
