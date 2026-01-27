@@ -1,5 +1,6 @@
 import dns.asyncresolver
 from dns.resolver import NoAnswer, NXDOMAIN
+from dns.exception import Timeout
 
 # Reusable resolver for high-performance worker loops
 _RESOLVER = dns.asyncresolver.Resolver()
