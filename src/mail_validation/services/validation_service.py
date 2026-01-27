@@ -1,11 +1,7 @@
-validation_service.py
 from __future__ import annotations
-
 from typing import Any, Dict
-
 from mail_validation.validators.email_syntax import validate_email_syntax
 from mail_validation.validators.email_mx import validate_email_mx
-
 
 def validate_email_internal(email: str) -> Dict[str, Any]:
     """
