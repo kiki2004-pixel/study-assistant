@@ -1,10 +1,8 @@
-# src/mail_validation/routers/validation_router.py
-
 from fastapi import APIRouter, HTTPException, Query
 from time import perf_counter
-import asyncio
 import logging
 
+# Logic and Model imports
 from mail_validation.services.validation_service import validate_email_internal
 from mail_validation.models.validation import ValidationResponse
 from mail_validation.models.bulk_validation import (
@@ -15,16 +13,16 @@ from mail_validation.models.bulk_validation import (
 )
 
 logger = logging.getLogger(__name__)
-
 router = APIRouter()
 
 
 @router.post("/validate-single", response_model=ValidationResponse)
 async def validate_single(email: str = Query(..., description="The email address to verify")):
     """
-    Validate a single email address.
+    Validate a single email address using syntax and async DNS layers.
     """
-    result = await asyncio.to_thread(validate_email_internal, email)
+    # FIX: Call the async service directly with 'await'
+    result = await validate_email_internal(email)
 
     if not result["ok"] and result.get("layer") == "syntax":
         raise HTTPException(
@@ -33,7 +31,7 @@ async def validate_single(email: str = Query(..., description="The email address
                 "email": email,
                 "valid": False,
                 "reason": result["reason"],
-                "message": result["details"].get("message"),
+                "message": result["details"].get("message", "Invalid syntax"),
                 "layer": "syntax",
             },
         )
@@ -50,7 +48,7 @@ async def validate_single(email: str = Query(..., description="The email address
 async def validate_bulk(payload: BulkValidationRequest):
     """
     Validates up to 30,000 emails in a single request.
-    Supports deduplication and summary/all/invalid_only response modes.
+    Leverages async concurrency for high-performance DNS lookups.
     """
     start_time = perf_counter()
 
@@ -79,7 +77,8 @@ async def validate_bulk(payload: BulkValidationRequest):
 
     for email in emails:
         try:
-            r = await asyncio.to_thread(validate_email_internal, email)
+            # FIX: Native 'await' replaces 'to_thread' for better performance
+            r = await validate_email_internal(email)
         except Exception:
             error_count += 1
             logger.exception("Unexpected error validating email=%r", email)
