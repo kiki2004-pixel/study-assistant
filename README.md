@@ -1,9 +1,9 @@
 # Mail-Validator
-FastAPI service that performs syntax-only email validation and can automate Listmonk list hygiene.
+FastAPI service that performs syntax + DNS MX email validation and can automate Listmonk list hygiene.
 
 ## What it does
-- Provides HTTP endpoints to validate single emails or bulk lists (syntax-only).
-- Optionally runs a Listmonk job that fetches new subscribers, validates syntax, and unsubscribes invalid emails.
+- Provides HTTP endpoints to validate single emails or bulk lists (syntax + DNS MX).
+- Optionally runs a Listmonk job that fetches new subscribers, validates with the same syntax + DNS MX pipeline, and unsubscribes invalid emails.
 - Uses a watermark (created_at + id) so each Listmonk run only processes new subscribers.
 
 ## API
@@ -11,7 +11,7 @@ FastAPI service that performs syntax-only email validation and can automate List
 Query params:
 - email
 
-Returns a validation response. Invalid syntax returns HTTP 422 with a structured error.
+Returns a validation response. Invalid syntax returns HTTP 422 with a structured error. DNS MX failures return HTTP 200 with status=undeliverable.
 
 ### POST /validation/validate-bulk
 Request body:
@@ -23,8 +23,8 @@ Request body:
 }
 ```
 
-## Listmonk syntax validation job
-This job fetches new subscribers (watermark-based), validates syntax only, and unsubscribes invalid emails in bulk.
+## Listmonk validation job
+This job fetches new subscribers (watermark-based), validates with the same API pipeline, and unsubscribes invalid emails in bulk.
 
 ### Required env vars (API token recommended)
 - LISTMONK_BASE_URL
@@ -42,6 +42,8 @@ Compatibility: LISTMONK_URL / LISTMONK_USER / LISTMONK_PASS are also accepted fo
 - CELERY_RESULT_BACKEND (default: CELERY_BROKER_URL)
 - CELERY_RESTART_DELAY_SECONDS (default: 10)
 - WATERMARK_DB_URL (required, Postgres URL for watermark storage)
+- MX_CHECK_ENABLED (default: true)
+- MX_TIMEOUT_SECONDS (default: 2.0)
 
 ### Run once
 ```

@@ -1,4 +1,3 @@
-test_validation.py
 import os
 
 os.environ["LISTMONK_URL"] = "http://localhost"
@@ -6,6 +5,10 @@ os.environ["LISTMONK_USER"] = "test"
 os.environ["LISTMONK_PASS"] = "test"
 os.environ["POSTMARK_WEBHOOK_SECRET"] = "test"  # needed for settings init
 os.environ["MX_CHECK_ENABLED"] = "false"
+
+from mail_validation.settings import get_settings
+
+get_settings.cache_clear()
 
 from fastapi.testclient import TestClient
 from main import app
