@@ -1,22 +1,11 @@
 import tomllib
 from pathlib import Path
-
 from fastapi import FastAPI
-from contextlib import asynccontextmanager
-from scrub.routers.validation_router import router as validation_router
-from scrub.routers.listmonk_router import router as listmonk_router
-from scrub.routers.webhook_router import router as webhook_router
-from scrub.storage.webhook_store import WebhookStore
-from scrub.settings import settings
+from mail_validation.routers.validation_router import router as validation_router
 from prometheus_fastapi_instrumentator import Instrumentator
+from contextlib import asynccontextmanager
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Run schema init once at startup — not on every request
-    WebhookStore(settings.watermark_db_url).init_schema()
-    yield
-
+from mail_validation.jobs.listmonk_validator import run_cycle
 
 CURRENT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = CURRENT_DIR.parent
@@ -28,27 +17,24 @@ with open(pyproject_path, "rb") as f:
     description = data["project"].get("description")
     version = data["project"].get("version")
 
+
+@asynccontextmanager
+async def _kickoff_listmonk_validation(app: FastAPI):
+    run_cycle.apply_async()
+    yield
+
+
 app = FastAPI(
     title=title,
     description=description,
     version=version,
-    lifespan=lifespan,
+    lifespan=_kickoff_listmonk_validation,
 )
-
 # --- Initialize Metrics Engine ---
+# This exposes the /metrics endpoint for Grafana
 Instrumentator().instrument(app).expose(app)
 
 # Validation Endpoint: /validation/validate-single
 app.include_router(
     router=validation_router, prefix="/validation", tags=["Email Validation"]
-)
-
-# Listmonk Integration: /listmonk/settings, /listmonk/test-connection
-app.include_router(
-    router=listmonk_router, prefix="/listmonk", tags=["Listmonk Integration"]
-)
-
-# Webhooks: /webhooks/register, /webhooks/deregister, /webhooks/list
-app.include_router(
-    router=webhook_router, prefix="/webhooks", tags=["Webhooks"]
 )

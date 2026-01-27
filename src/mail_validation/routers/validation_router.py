@@ -17,7 +17,9 @@ router = APIRouter()
 
 
 @router.post("/validate-single", response_model=ValidationResponse)
-async def validate_single(email: str = Query(..., description="The email address to verify")):
+async def validate_single(
+    email: str = Query(..., description="The email address to verify"),
+):
     """
     Validate a single email address using syntax and async DNS layers.
     """
