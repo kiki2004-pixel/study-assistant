@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from main import app
-from services.listmonk_client import ListmonkClient
+from mail_services.listmonk_client import ListmonkClient
 
 
 def _env(name: str, default: str = "") -> str:
