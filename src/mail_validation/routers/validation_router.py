@@ -1,4 +1,5 @@
-validation_router.py
+# src/mail_validation/routers/validation_router.py
+
 from fastapi import APIRouter, HTTPException, Query
 from time import perf_counter
 import asyncio
@@ -19,9 +20,10 @@ router = APIRouter()
 
 
 @router.post("/validate-single", response_model=ValidationResponse)
-async def validate_only(
-    email: str = Query(..., description="The email address to verify"),
-):
+async def validate_single(email: str = Query(..., description="The email address to verify")):
+    """
+    Validate a single email address.
+    """
     result = await asyncio.to_thread(validate_email_internal, email)
 
     if not result["ok"] and result.get("layer") == "syntax":
@@ -48,12 +50,13 @@ async def validate_only(
 async def validate_bulk(payload: BulkValidationRequest):
     """
     Validates up to 30,000 emails in a single request.
+    Supports deduplication and summary/all/invalid_only response modes.
     """
-    start = perf_counter()
+    start_time = perf_counter()
 
-    emails = payload.emails
-
+    emails = payload.emails or []
     duplicates_removed = 0
+
     if payload.dedupe:
         seen = set()
         deduped = []
@@ -80,7 +83,6 @@ async def validate_bulk(payload: BulkValidationRequest):
         except Exception:
             error_count += 1
             logger.exception("Unexpected error validating email=%r", email)
-
             item = BulkEmailResult(
                 email=email,
                 valid=False,
@@ -89,7 +91,6 @@ async def validate_bulk(payload: BulkValidationRequest):
                 layer="internal",
                 details={"message": "Unexpected validation error."},
             )
-
             if payload.response_mode in ("all", "invalid_only"):
                 results.append(item)
             continue
@@ -120,7 +121,7 @@ async def validate_bulk(payload: BulkValidationRequest):
         if payload.response_mode == "all":
             results.append(item)
 
-    duration_ms = int((perf_counter() - start) * 1000)
+    duration_ms = int((perf_counter() - start_time) * 1000)
 
     summary = BulkValidationSummary(
         total=total,

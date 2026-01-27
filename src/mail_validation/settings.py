@@ -1,80 +1,138 @@
-settings.py
-from functools import lru_cache
-from typing import Optional
+from fastapi import APIRouter, HTTPException, Query
+from time import perf_counter
+import asyncio
+import logging
 
-from pydantic import AliasChoices, Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from mail_validation.services.validation_service import validate_email_internal
+from mail_validation.models.validation import ValidationResponse
+from mail_validation.models.bulk_validation import (
+    BulkValidationRequest,
+    BulkValidationResponse,
+    BulkEmailResult,
+    BulkValidationSummary,
+)
 
+logger = logging.getLogger(__name__)
 
-class Settings(BaseSettings):
-    listmonk_url: str = Field(
-        default="http://localhost:9000",
-        validation_alias=AliasChoices("LISTMONK_BASE_URL", "LISTMONK_URL"),
-    )
-    listmonk_user: Optional[str] = Field(
-        default=None,
-        validation_alias=AliasChoices("LISTMONK_USERNAME", "LISTMONK_USER"),
-    )
-    listmonk_pass: Optional[str] = Field(
-        default=None,
-        validation_alias=AliasChoices("LISTMONK_PASSWORD", "LISTMONK_PASS"),
-    )
-    listmonk_api_user: Optional[str] = Field(
-        default=None,
-        validation_alias=AliasChoices("LISTMONK_API_USER"),
-    )
-    listmonk_api_token: Optional[str] = Field(
-        default=None,
-        validation_alias=AliasChoices("LISTMONK_API_TOKEN"),
-    )
-    listmonk_list_id: Optional[str] = Field(
-        default=None,
-        validation_alias=AliasChoices("LISTMONK_LIST_ID"),
-    )
-    listmonk_exclude_name_substrings: str = Field(
-        default="test,sample",
-        validation_alias=AliasChoices("LISTMONK_EXCLUDE_NAME_SUBSTRINGS"),
-    )
-    watermark_db_url: Optional[str] = Field(
-        default=None,
-        validation_alias=AliasChoices("WATERMARK_DB_URL"),
-    )
-    validation_batch_size: int = Field(
-        default=250,
-        validation_alias=AliasChoices("VALIDATION_BATCH_SIZE"),
-    )
-    validation_poll_interval_seconds: int = Field(
-        default=0,
-        validation_alias=AliasChoices("VALIDATION_POLL_INTERVAL_SECONDS"),
-    )
-    celery_broker_url: str = Field(
-        default="redis://localhost:6379/0",
-        validation_alias=AliasChoices("CELERY_BROKER_URL"),
-    )
-    celery_result_backend: Optional[str] = Field(
-        default=None,
-        validation_alias=AliasChoices("CELERY_RESULT_BACKEND"),
-    )
-    celery_restart_delay_seconds: int = Field(
-        default=10,
-        validation_alias=AliasChoices("CELERY_RESTART_DELAY_SECONDS"),
-    )
-    postmark_webhook_secret: Optional[str] = Field(
-        default=None,
-        validation_alias=AliasChoices("POSTMARK_WEBHOOK_SECRET"),
-    )
-    mx_check_enabled: bool = Field(
-        default=True,
-        validation_alias=AliasChoices("MX_CHECK_ENABLED"),
-    )
-    mx_timeout_seconds: float = Field(
-        default=2.0,
-        validation_alias=AliasChoices("MX_TIMEOUT_SECONDS"),
-    )
-
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+router = APIRouter()
 
 
-@lru_cache
-def get_settings() -> Settings:
-    return Settings()
+@router.post("/validate-single", response_model=ValidationResponse)
+async def validate_single(email: str = Query(..., description="The email address to verify")):
+    """
+    Validate a single email address.
+    """
+    result = await asyncio.to_thread(validate_email_internal, email)
+
+    if not result["ok"] and result.get("layer") == "syntax":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "email": email,
+                "valid": False,
+                "reason": result["reason"],
+                "message": result["details"].get("message"),
+                "layer": "syntax",
+            },
+        )
+
+    return {
+        "email": email,
+        "status": result["status"],
+        "reason": result["reason"],
+        "details": result["details"],
+    }
+
+
+@router.post("/validate-bulk", response_model=BulkValidationResponse)
+async def validate_bulk(payload: BulkValidationRequest):
+    """
+    Validates up to 30,000 emails in a single request.
+    Supports deduplication and summary/all/invalid_only response modes.
+    """
+    start_time = perf_counter()
+
+    emails = payload.emails or []
+    duplicates_removed = 0
+
+    if payload.dedupe:
+        seen = set()
+        deduped = []
+        for e in emails:
+            normalized = e.lower()
+            if normalized in seen:
+                duplicates_removed += 1
+                continue
+            seen.add(normalized)
+            deduped.append(e)
+        emails = deduped
+
+    total = len(payload.emails)
+    processed = len(emails)
+
+    results: list[BulkEmailResult] = []
+    valid_count = 0
+    invalid_count = 0
+    error_count = 0
+
+    for email in emails:
+        try:
+            r = await asyncio.to_thread(validate_email_internal, email)
+        except Exception:
+            error_count += 1
+            logger.exception("Unexpected error validating email=%r", email)
+            item = BulkEmailResult(
+                email=email,
+                valid=False,
+                status="error",
+                reason="internal_error",
+                layer="internal",
+                details={"message": "Unexpected validation error."},
+            )
+            if payload.response_mode in ("all", "invalid_only"):
+                results.append(item)
+            continue
+
+        if not r["ok"]:
+            invalid_count += 1
+            item = BulkEmailResult(
+                email=email,
+                valid=False,
+                status=r.get("status", "undeliverable"),
+                reason=r.get("reason"),
+                layer=r.get("layer"),
+                details=r.get("details") or {},
+            )
+            if payload.response_mode in ("all", "invalid_only"):
+                results.append(item)
+            continue
+
+        valid_count += 1
+        item = BulkEmailResult(
+            email=email,
+            valid=True,
+            status=r.get("status", "unknown"),
+            reason=r.get("reason"),
+            layer=r.get("layer"),
+            details=r.get("details") or {},
+        )
+        if payload.response_mode == "all":
+            results.append(item)
+
+    duration_ms = int((perf_counter() - start_time) * 1000)
+
+    summary = BulkValidationSummary(
+        total=total,
+        processed=processed,
+        valid=valid_count,
+        invalid=invalid_count,
+        errors=error_count,
+        deduped=payload.dedupe,
+        duplicates_removed=duplicates_removed,
+        duration_ms=duration_ms,
+    )
+
+    if payload.response_mode == "summary_only":
+        return BulkValidationResponse(summary=summary, results=None)
+
+    return BulkValidationResponse(summary=summary, results=results)
