@@ -5,21 +5,11 @@ description = "AI backend responsible for receiving, validating and blacklisting
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "deepface>=0.0.93",
     "fastapi[standard]>=0.115.14",
     "httpx>=0.28.1",
-    "langchain-openai>=0.3.27",
-    "mcp-use>=1.3.6",
-    "pillow>=11.2.1",
     "pydantic>=2.11.7",
     "pydantic-settings>=2.10.1",
-    "pytest>=8.4.2",
-    "sentry-sdk[fastapi]>=2.34.1",
-    "tf-keras>=2.19.0",
-    "numpy>=1.14.0",
-    "gdown>=3.10.1",
-    "opencv-python>=3.4.4",
-    "tensorflow>=1.9.0",
+    "dnspython>=2.6.1",
     "sqlalchemy>=2.0.41",
     "psycopg2-binary>=2.9.11",
     "alembic>=1.17.0",
@@ -28,7 +18,8 @@ dependencies = [
     "prometheus-fastapi-instrumentator>=7.0.0",
     "celery[redis]>=5.6.2",
     "celery-types==0.24.0",
-    "dnspython>=2.6.1",
+    "sentry-sdk[fastapi]>=2.34.1",
+    "pillow>=11.2.1",
 ]
 
 [dependency-groups]

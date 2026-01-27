@@ -29,10 +29,16 @@ services:
     image: pixel/mail-validation-service:latest
     depends_on:
       - redis
+      - listmonk_app
     environment:
       - PYTHONPATH=/app/src
       - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      - LISTMONK_BASE_URL=http://listmonk_app:9000
+      - LISTMONK_API_USER=${LISTMONK_API_USER:-}
+      - LISTMONK_API_TOKEN=${LISTMONK_API_TOKEN:-}
+      - C_FORCE_ROOT=true  # <--- Add this to silence the root error
+    # Removed --uid=1000 from the command below
     command: ["/app/.venv/bin/python", "-m", "celery", "-A", "mail_validation.jobs.listmonk_validator.celery_app", "worker", "--loglevel=info"]
     restart: unless-stopped
 
