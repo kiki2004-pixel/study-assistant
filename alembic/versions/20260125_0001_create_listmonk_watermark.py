@@ -1,7 +1,7 @@
 """Create listmonk watermark table.
 
 Revision ID: 20260125_0001
-Revises: 
+Revises:
 Create Date: 2026-01-25
 """
 
@@ -22,8 +22,15 @@ def upgrade() -> None:
         sa.Column("list_id", sa.BigInteger(), nullable=False, unique=True),
         sa.Column("last_successful_created_at", sa.Text(), nullable=True),
         sa.Column("last_run_at", sa.Text(), nullable=True),
-        sa.Column("processed_count", sa.Integer(), nullable=False, server_default=sa.text("0")),
-        sa.Column("unsubscribed_count", sa.Integer(), nullable=False, server_default=sa.text("0")),
+        sa.Column(
+            "processed_count", sa.Integer(), nullable=False, server_default=sa.text("0")
+        ),
+        sa.Column(
+            "unsubscribed_count",
+            sa.Integer(),
+            nullable=False,
+            server_default=sa.text("0"),
+        ),
     )
 
 

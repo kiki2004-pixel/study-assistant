@@ -17,12 +17,19 @@ with open(pyproject_path, "rb") as f:
     description = data["project"].get("description")
     version = data["project"].get("version")
 
+
 @asynccontextmanager
-async def _kickoff_listmonk_validation(app :FastAPI):
+async def _kickoff_listmonk_validation(app: FastAPI):
     run_cycle.apply_async()
     yield
 
-app = FastAPI(title=title, description=description, version=version, lifespan=_kickoff_listmonk_validation)
+
+app = FastAPI(
+    title=title,
+    description=description,
+    version=version,
+    lifespan=_kickoff_listmonk_validation,
+)
 # --- Initialize Metrics Engine ---
 # This exposes the /metrics endpoint for Grafana
 Instrumentator().instrument(app).expose(app)
@@ -31,4 +38,3 @@ Instrumentator().instrument(app).expose(app)
 app.include_router(
     router=validation_router, prefix="/validation", tags=["Email Validation"]
 )
-
