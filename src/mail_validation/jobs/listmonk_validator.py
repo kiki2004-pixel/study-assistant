@@ -228,7 +228,10 @@ async def _run_once(settings: Settings) -> RunSummary:
             w_b, w_a, f, c, u, e = await job.run_once(lst.id)
             res["b"][lst.id],
             res["a"][lst.id] = w_b, w_a
-            res["f"] += f; res["c"] += c; res["u"] += u; res["e"] += e
+            res["f"] += f
+            res["c"] += c
+            res["u"] += u
+            res["e"] += e
 
         return RunSummary(
             started_at=started_at,
