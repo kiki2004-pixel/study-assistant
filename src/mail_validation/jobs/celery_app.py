@@ -30,7 +30,6 @@ def validate_emails(page: int, page_size: int):
 
 @celery_app.task(name="start_scheduler")
 def start_scheduler():
-    while True:
         listmonk = Listmonk(Settings())
         total = listmonk.subscribers_count()
         print(f"Total subscribers: {total}")
@@ -42,3 +41,6 @@ def start_scheduler():
                 break
             page += 1
         time.sleep(60)
+
+
+celery_app.conf.beat_schedule = {"start_scheduler": {"task": "start_scheduler", "schedule": 60}}
