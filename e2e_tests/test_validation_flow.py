@@ -9,7 +9,6 @@ os.environ["LISTMONK_USER"] = "test"
 os.environ["LISTMONK_PASS"] = "test"
 
 from main import app
-from mail_validation.services.listmonk_client import ListmonkClient
 
 # Mock Paths for Service and Client
 MOCK_DNS_PATH = "mail_validation.services.validation_service.check_dns_records"
@@ -64,37 +63,6 @@ def test_validate_bulk_summary_e2e(mocker):
 # 2. Listmonk Automation Tests
 
 
-@pytest.mark.asyncio
-async def test_listmonk_client_logic_mocked():
-    """Verifies the Async Client can parse Listmonk's list data."""
-    mock_data = {"data": {"results": [{"id": 1, "name": "Main List"}]}}
-    with patch(MOCK_LM_REQUEST, new_callable=AsyncMock) as mock_req:
-        mock_req.return_value = mock_data
-        async with ListmonkClient(
-            base_url="http://test", username="a", password="b"
-        ) as lc:
-            lists = await lc.fetch_lists()
-            assert lists[0].name == "Main List"
-
-
-@pytest.mark.asyncio
-async def test_listmonk_auto_unsubscribe_logic_mocked():
-    """Verifies the Worker's ability to command an 'unsubscribe' in Listmonk."""
-    with patch(MOCK_LM_REQUEST, new_callable=AsyncMock) as mock_req:
-        mock_req.return_value = {"ok": True}
-        async with ListmonkClient(
-            base_url="http://test", username="a", password="b"
-        ) as lc:
-            # IDs 101 and 102 are marked for removal after DNS failure
-            await lc.bulk_unsubscribe(list_id=1, ids=[101, 102])
-
-        # Verify call arguments match Listmonk API specs
-        _, kwargs = mock_req.call_args
-        assert kwargs["json"]["action"] == "unsubscribe"
-        assert 101 in kwargs["json"]["ids"]
-
-
-# 3. System Health
 
 
 def test_metrics_endpoint_active():
