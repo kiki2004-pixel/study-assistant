@@ -12,18 +12,19 @@ from mail_validation.models.bulk_validation import (
     BulkValidationSummary,
 )
 
-from mail_validation.services.Listmonk import Listmonk
 import mail_validation.jobs.celery_app as celery_app
 
-from mail_validation.settings import Settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
 
 @router.get("/trigger")
 async def trigger_validation():
     celery_app.start_scheduler.delay()
     return {"message": "Scheduler started"}
+
+
 @router.post("/validate-single", response_model=ValidationResponse)
 async def validate_single(
     email: str = Query(..., description="The email address to verify"),
