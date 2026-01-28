@@ -32,15 +32,20 @@ services:
       - listmonk_app
     environment:
       - PYTHONPATH=/app/src
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      - C_FORCE_ROOT=true
+      # We provide EVERY variant the code might look for
       - LISTMONK_BASE_URL=http://listmonk_app:9000
-      - LISTMONK_API_USER=${LISTMONK_API_USER:-}
-      - LISTMONK_API_TOKEN=${LISTMONK_API_TOKEN:-}
-      - C_FORCE_ROOT=true  # <--- Add this to silence the root error
-    # Removed --uid=1000 from the command below
+      - LISTMONK_URL=http://listmonk_app:9000
+      - LISTMONK_USER=kiki
+      - LISTMONK_PASS=Uh9t9APHqdWqwKW4hP4uE23lc8hGOMAv
+      - LISTMONK_LIST_ID=1
+      - WATERMARK_DB_URL=postgresql+psycopg2://listmonk:listmonk@listmonk_db:5432/listmonk
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     command: ["/app/.venv/bin/python", "-m", "celery", "-A", "mail_validation.jobs.listmonk_validator.celery_app", "worker", "--loglevel=info"]
     restart: unless-stopped
+
+
 
   prometheus:
     image: prom/prometheus:latest
@@ -126,14 +131,15 @@ services:
       - listmonk_app
       - redis
     environment:
+      - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app/src
       - LISTMONK_BASE_URL=http://listmonk:9000
-      - LISTMONK_API_USER=${LISTMONK_API_USER:-}
-      - LISTMONK_API_TOKEN=${LISTMONK_API_TOKEN:-}
-      - LISTMONK_LIST_ID=${LISTMONK_LIST_ID:-}
+      - LISTMONK_API_USER=${LISTMONK_API_USER}
+      - LISTMONK_API_TOKEN=${LISTMONK_API_TOKEN}
+      - LISTMONK_LIST_ID=${LISTMONK_LIST_ID}
       - LISTMONK_EXCLUDE_NAME_SUBSTRINGS=${LISTMONK_EXCLUDE_NAME_SUBSTRINGS:-}
-      - VALIDATION_BATCH_SIZE=${VALIDATION_BATCH_SIZE:-}
-      - VALIDATION_POLL_INTERVAL_SECONDS=${VALIDATION_POLL_INTERVAL_SECONDS:-}
+      - VALIDATION_BATCH_SIZE=${VALIDATION_BATCH_SIZE:-100}
+      - VALIDATION_POLL_INTERVAL_SECONDS=${VALIDATION_POLL_INTERVAL_SECONDS:-60}
       - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
       - WATERMARK_DB_URL=postgresql+psycopg2://listmonk:listmonk@listmonk_db:5432/listmonk
