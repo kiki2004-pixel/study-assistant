@@ -3,7 +3,6 @@
 services:
   mail-validation-service:
     build: .
-    image: pixel/mail-validation-service:latest
     ports:
       - "3000:3000"
     environment:
@@ -26,7 +25,6 @@ services:
 
   celery-worker:
     build: .
-    image: pixel/mail-validation-service:latest
     depends_on:
       - redis
       - listmonk_app
@@ -126,7 +124,6 @@ services:
 
   listmonk-validator:
     build: .
-    image: pixel/mail-validation-service:latest
     depends_on:
       - listmonk_app
       - redis
