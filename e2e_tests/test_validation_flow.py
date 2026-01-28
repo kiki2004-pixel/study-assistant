@@ -1,7 +1,5 @@
-import pytest
 import os
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, patch
 
 # 1. Setup Environment for Settings initialization
 os.environ["LISTMONK_URL"] = "http://mock-listmonk"
