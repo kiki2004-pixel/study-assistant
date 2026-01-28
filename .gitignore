@@ -11,3 +11,4 @@ data/
 data/grafana/
 data/prometheus/
 .idea/
+celerybeat*
