@@ -1,23 +1,18 @@
+
+
 services:
-  scrub:
-    build: api
-    env_file:
-      - api/.env
+  mail-validation-service:
+    build: .
     ports:
       - "3000:3000"
     environment:
-      - PYTHONPATH=/app/src
-      - PYTHONUNBUFFERED=1
-      - AGENT_NAME=scrub
-      - LISTMONK_URL=${LISTMONK_URL:-}
-      - LISTMONK_USER=${LISTMONK_USER:-}
+      - LISTMONK_URL=${LISTMONK_URL:-http://listmonk_app:9000}
+      - LISTMONK_USER=${LISTMONK_USER:-kiki}
       - LISTMONK_PASS=${LISTMONK_PASS:-}
       - LISTMONK_LIST_ID=${LISTMONK_LIST_ID:-1}
       - LISTMONK_EXCLUDE_NAME_SUBSTRINGS=${LISTMONK_EXCLUDE_NAME_SUBSTRINGS:-}
-      - SCRUB_DB_URL=${SCRUB_DB_URL:-postgresql+psycopg2://scrub:scrub@scrub_db:5432/scrub}
-      - API_KEY=${API_KEY:-local-dev-api-key}
-      - ZITADEL_DOMAIN=${ZITADEL_DOMAIN:-http://zitadel:8080}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
     restart: unless-stopped
     depends_on:
       - listmonk_app
@@ -26,15 +21,13 @@ services:
 
   redis:
     image: redis:latest
-    container_name: scrub_redis
+    container_name: mail_validation_redis
     ports:
       - "6379:6379"
     restart: unless-stopped
 
   celery-worker:
-    build: api
-    env_file:
-      - api/.env
+    build: .
     depends_on:
       - redis
       - listmonk_app
@@ -50,63 +43,49 @@ services:
       - LISTMONK_EXCLUDE_NAME_SUBSTRINGS=${LISTMONK_EXCLUDE_NAME_SUBSTRINGS:-}
       - VALIDATION_BATCH_SIZE=${VALIDATION_BATCH_SIZE:-250}
       - VALIDATION_POLL_INTERVAL_SECONDS=${VALIDATION_POLL_INTERVAL_SECONDS:-60}
-      - SCRUB_DB_URL=postgresql+psycopg2://scrub:scrub@scrub_db:5432/scrub
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
-    command:
-      [
-        "/app/.venv/bin/python",
-        "-m",
-        "rq",
-        "worker",
-        "--url",
-        "redis://redis:6379/0",
-        "--with-scheduler",
-      ]
+      - WATERMARK_DB_URL=postgresql+psycopg2://listmonk:listmonk@listmonk_db:5432/listmonk
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+    command: ["/app/.venv/bin/python", "-m", "celery", "-A", "mail_validation.jobs.celery_app", "worker", "--loglevel=info"]
     restart: unless-stopped
 
-  zitadel:
-    image: ghcr.io/zitadel/zitadel:v2.63.5
-    container_name: zitadel
-    command: start-from-init --masterkey "MasterkeyNeedsToHave32Characters" --tlsMode disabled
+  keycloak:
+    container_name: keycloak
+    image: ghcr.io/nerd-zero/auth:2025.07.002-alpha
     restart: unless-stopped
+    command: start-dev
     environment:
-      ZITADEL_DATABASE_POSTGRES_HOST: zitadel-db
-      ZITADEL_DATABASE_POSTGRES_PORT: 5432
-      ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
-      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: zitadel
-      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: zitadel
-      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
-      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: postgres
-      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: postgres
-      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
-      ZITADEL_EXTERNALSECURE: "false"
-      ZITADEL_EXTERNALPORT: 8080
-      ZITADEL_EXTERNALDOMAIN: localhost
-      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: zitadel-admin@zitadel.localhost
-      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: Password1!
+      KC_DB: postgres
+      KC_DB_URL_HOST: keycloak-db
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8080
     ports:
       - "8080:8080"
     depends_on:
-      zitadel-db:
+      keycloak-db:
         condition: service_healthy
 
-  zitadel-db:
-    container_name: zitadel-db
-    image: postgres:17
+  keycloak-db:
+    container_name: keycloak-db
+    image: docker.io/postgres:17
     restart: unless-stopped
     expose:
       - 5432
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: zitadel
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: password
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
       interval: 10s
       timeout: 5s
       retries: 6
     volumes:
-      - zitadel-db:/var/lib/postgresql/data
+      - keycloak-db:/var/lib/postgresql/data
 
   prometheus:
     image: prom/prometheus:latest
@@ -114,10 +93,10 @@ services:
     ports:
       - "9090:9090"
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "host.docker.internal:host-gateway" 
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./data/prometheus:/prometheus # Moved to data subfolder
+      - ./data/prometheus:/prometheus  # Moved to data subfolder
     restart: unless-stopped
 
   grafana:
@@ -212,5 +191,4 @@ services:
       - ./data/listmonk/db:/var/lib/postgresql/data
 
 volumes:
-  zitadel-db:
-  scrub-db:
+  keycloak-db:
