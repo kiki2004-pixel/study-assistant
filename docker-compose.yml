@@ -60,7 +60,7 @@ services:
         "-m",
         "celery",
         "-A",
-        "scrub.jobs.celery_app",
+        "mail_validation.jobs.celery_app",
         "worker",
         "--loglevel=info",
       ]
