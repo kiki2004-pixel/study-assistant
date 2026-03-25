@@ -1,0 +1,270 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" },
+    { "type": "panel", "id": "timeseries", "name": "Time series", "version": "" },
+    { "type": "panel", "id": "stat", "name": "Stat", "version": "" },
+    { "type": "panel", "id": "piechart", "name": "Pie chart", "version": "" },
+    { "type": "panel", "id": "histogram", "name": "Histogram", "version": "" }
+  ],
+  "title": "Mail Validation Service",
+  "uid": "mail-validation-v1",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-24h", "to": "now" },
+  "timezone": "browser",
+  "tags": ["mail-validation", "observability"],
+  "panels": [
+
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total emails validated",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "unit": "short"
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum(mail_validation_emails_total)",
+          "legendFormat": "Total"
+        }
+      ]
+    },
+
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Deliverable",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "green" },
+          "unit": "short"
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum(mail_validation_emails_total{status=\"deliverable\"})",
+          "legendFormat": "Deliverable"
+        }
+      ]
+    },
+
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Undeliverable",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "unit": "short"
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum(mail_validation_emails_total{status=\"undeliverable\"})",
+          "legendFormat": "Undeliverable"
+        }
+      ]
+    },
+
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Duplicates removed",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "orange" },
+          "unit": "short"
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "mail_validation_duplicates_removed_total",
+          "legendFormat": "Duplicates"
+        }
+      ]
+    },
+
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Validation rate over time (by status)",
+      "gridPos": { "x": 0, "y": 4, "w": 16, "h": 8 },
+      "options": {
+        "legend": { "calcs": ["last"], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Deliverable" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] },
+          { "matcher": { "id": "byName", "options": "Undeliverable" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] },
+          { "matcher": { "id": "byName", "options": "Error" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }] }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "rate(mail_validation_emails_total{status=\"deliverable\"}[5m])",
+          "legendFormat": "Deliverable"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "rate(mail_validation_emails_total{status=\"undeliverable\"}[5m])",
+          "legendFormat": "Undeliverable"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "rate(mail_validation_emails_total{status=\"error\"}[5m])",
+          "legendFormat": "Error"
+        }
+      ]
+    },
+
+    {
+      "id": 6,
+      "type": "piechart",
+      "title": "Validation breakdown (syntax vs DNS layer)",
+      "gridPos": { "x": 16, "y": 4, "w": 8, "h": 8 },
+      "options": {
+        "pieType": "donut",
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum by (layer) (mail_validation_emails_total)",
+          "legendFormat": "{{layer}}"
+        }
+      ]
+    },
+
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Validation duration (p50 / p95 / p99)",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "options": {
+        "legend": { "calcs": ["last"], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "lineWidth": 2 } }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "histogram_quantile(0.50, sum(rate(mail_validation_duration_seconds_bucket[5m])) by (le, endpoint))",
+          "legendFormat": "p50 {{endpoint}}"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "histogram_quantile(0.95, sum(rate(mail_validation_duration_seconds_bucket[5m])) by (le, endpoint))",
+          "legendFormat": "p95 {{endpoint}}"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "histogram_quantile(0.99, sum(rate(mail_validation_duration_seconds_bucket[5m])) by (le, endpoint))",
+          "legendFormat": "p99 {{endpoint}}"
+        }
+      ]
+    },
+
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Bulk request size over time",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 8 } }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "histogram_quantile(0.50, rate(mail_validation_bulk_size_bucket[5m]))",
+          "legendFormat": "p50 batch size"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "histogram_quantile(0.95, rate(mail_validation_bulk_size_bucket[5m]))",
+          "legendFormat": "p95 batch size"
+        }
+      ]
+    },
+
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Single vs Bulk endpoint usage",
+      "gridPos": { "x": 0, "y": 20, "w": 24, "h": 7 },
+      "options": {
+        "legend": { "calcs": ["last", "sum"], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 6 } }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "rate(mail_validation_emails_total{endpoint=\"single\"}[5m])",
+          "legendFormat": "Single endpoint"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "rate(mail_validation_emails_total{endpoint=\"bulk\"}[5m])",
+          "legendFormat": "Bulk endpoint"
+        }
+      ]
+    }
+
+  ]
+}
