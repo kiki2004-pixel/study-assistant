@@ -1,10 +1,14 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, HttpUrl
+import ipaddress
+import socket
+
 import httpx
 
 from mail_validation.settings import get_settings
 
 router = APIRouter()
+
 
 class ListmonkSettings(BaseModel):
     listmonk_url: HttpUrl
