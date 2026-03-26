@@ -4,10 +4,7 @@ import hashlib
 import hmac
 import secrets
 from dataclasses import dataclass
-from typing import Optional
-
 from sqlalchemy import (
-    BigInteger,
     Boolean,
     Column,
     Integer,
