@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from time import perf_counter
 from prometheus_client import Counter, Histogram
-import asyncio
 import logging
 
 from mail_validation.services.validation_service import validate_email_internal
@@ -51,7 +50,6 @@ DUPLICATES_REMOVED_COUNTER = Counter(
     "Total number of duplicate emails removed during bulk validation",
 )
 
-
 @router.get("/trigger")
 async def trigger_validation():
     celery_app.start_scheduler.delay()
@@ -61,6 +59,7 @@ async def trigger_validation():
 @router.post("/validate-single", response_model=ValidationResponse)
 async def validate_single(
     email: str = Query(..., description="The email address to verify"),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
     webhook_store: WebhookStore = Depends(get_webhook_store),
 ):
     """
@@ -98,13 +97,14 @@ async def validate_single(
         "details": result["details"],
     }
 
-    # Fire webhook async — don't block the response
-    asyncio.create_task(dispatch_webhook(webhook_store, {
+    # Fire webhook after response is sent — FastAPI BackgroundTasks manages
+    # execution safely, unlike asyncio.create_task() which is unbounded
+    background_tasks.add_task(dispatch_webhook, webhook_store, {
         "endpoint": "single",
         "job_id": None,
         "summary": {"total": 1, "valid": 1 if result["ok"] else 0, "invalid": 0 if result["ok"] else 1},
         "result": response,
-    }))
+    })
 
     return response
 
@@ -112,6 +112,7 @@ async def validate_single(
 @router.post("/validate-bulk", response_model=BulkValidationResponse)
 async def validate_bulk(
     payload: BulkValidationRequest,
+    background_tasks: BackgroundTasks = BackgroundTasks(),
     webhook_store: WebhookStore = Depends(get_webhook_store),
 ):
     """
@@ -221,8 +222,7 @@ async def validate_bulk(
 
     bulk_response = BulkValidationResponse(summary=summary, results=results)
 
-    # Fire webhook async — don't block the response
-    asyncio.create_task(dispatch_webhook(webhook_store, {
+    background_tasks.add_task(dispatch_webhook, webhook_store, {
         "endpoint": "bulk",
         "job_id": None,
         "summary": {
@@ -234,6 +234,6 @@ async def validate_bulk(
             "duplicates_removed": summary.duplicates_removed,
             "duration_ms": summary.duration_ms,
         },
-    }))
+    })
 
     return bulk_response
