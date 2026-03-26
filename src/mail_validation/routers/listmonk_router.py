@@ -42,8 +42,27 @@ async def get_listmonk_settings():
     )
 
 
+def _block_ssrf(url: HttpUrl) -> None:
+    """
+    Blocks requests to private/link-local IP ranges to prevent SSRF attacks.
+    Plain english: stops someone from using this endpoint to probe internal
+    servers (e.g. http://192.168.1.1, http://169.254.169.254/metadata).
+    """
+    host = url.host
+    try:
+        ip = ipaddress.ip_address(socket.gethostbyname(host))
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            raise HTTPException(
+                status_code=400,
+                detail="URL resolves to a private or reserved IP address.",
+            )
+    except socket.gaierror:
+        raise HTTPException(status_code=400, detail=f"Could not resolve host: {host}")
+
+
 @router.post("/test-connection", response_model=ConnectionTestResponse)
 async def test_listmonk_connection(payload: ListmonkSettings):
+    _block_ssrf(payload.listmonk_url)
     """
     Tests a Listmonk connection using the provided credentials.
     Hits the /api/health endpoint and fetches subscriber count to verify access.
