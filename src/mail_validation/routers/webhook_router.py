@@ -1,3 +1,6 @@
+import ipaddress
+import socket
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, HttpUrl
 
@@ -9,6 +12,20 @@ router = APIRouter()
 
 def get_webhook_store() -> WebhookStore:
     return WebhookStore(settings.watermark_db_url)
+
+
+def _block_ssrf(url: HttpUrl) -> None:
+    """Reject webhook URLs that resolve to private/internal IP ranges."""
+    try:
+        ip = ipaddress.ip_address(socket.gethostbyname(url.host))
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            raise HTTPException(
+                status_code=400,
+                detail="URL resolves to a private or reserved IP address.",
+            )
+    except socket.gaierror:
+        raise HTTPException(status_code=400, detail=f"Could not resolve host: {url.host}")
+
 
 class RegisterWebhookRequest(BaseModel):
     url: HttpUrl
