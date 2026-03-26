@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 import httpx
 
 from mail_validation.settings import get_settings
@@ -7,7 +7,7 @@ from mail_validation.settings import get_settings
 router = APIRouter()
 
 class ListmonkSettings(BaseModel):
-    listmonk_url: str
+    listmonk_url: HttpUrl
     listmonk_user: str
     listmonk_pass: str
     listmonk_list_id: str
@@ -26,7 +26,6 @@ class ConnectionTestResponse(BaseModel):
     success: bool
     message: str
     subscriber_count: int | None = None
-
 
 @router.get("/settings", response_model=ListmonkSettingsResponse)
 async def get_listmonk_settings():

@@ -255,12 +255,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "rate(mail_validation_emails_total{endpoint=\"single\"}[5m])",
+          "expr": "sum(rate(mail_validation_emails_total{endpoint=\"single\"}[5m]))",
           "legendFormat": "Single endpoint"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "rate(mail_validation_emails_total{endpoint=\"bulk\"}[5m])",
+          "expr": "sum(rate(mail_validation_emails_total{endpoint=\"bulk\"}[5m]))",
           "legendFormat": "Bulk endpoint"
         }
       ]

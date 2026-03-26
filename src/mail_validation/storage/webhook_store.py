@@ -16,7 +16,9 @@ from sqlalchemy import (
     select,
     update,
     delete,
+    event,
 )
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy import insert
 
 
@@ -52,35 +54,23 @@ class WebhookStore:
         metadata.create_all(self._engine)
 
     def register(self, url: str) -> WebhookRegistration:
-        """Register a new webhook URL, generating a signing secret."""
+        """Register a new webhook URL using atomic upsert to avoid race conditions."""
         secret = secrets.token_hex(32)
+        stmt = (
+            sqlite_insert(webhook_registrations)
+            .values(url=url, secret=secret, active=True, failure_count=0)
+            .on_conflict_do_update(
+                index_elements=[webhook_registrations.c.url],
+                set_={"active": True, "failure_count": 0, "secret": secret},
+            )
+        )
         with self._engine.begin() as conn:
-            # Check if URL already exists
-            existing = conn.execute(
-                select(webhook_registrations).where(
-                    webhook_registrations.c.url == url
-                )
-            ).first()
-
-            if existing:
-                conn.execute(
-                    update(webhook_registrations)
-                    .where(webhook_registrations.c.url == url)
-                    .values(active=True, failure_count=0, secret=secret)
-                )
-            else:
-                conn.execute(
-                    insert(webhook_registrations).values(
-                        url=url, secret=secret, active=True, failure_count=0
-                    )
-                )
-
+            conn.execute(stmt)
             row = conn.execute(
                 select(webhook_registrations).where(
                     webhook_registrations.c.url == url
                 )
             ).first()
-
         return WebhookRegistration(
             id=row[0], url=row[1], secret=row[2], active=row[3], failure_count=row[4]
         )
