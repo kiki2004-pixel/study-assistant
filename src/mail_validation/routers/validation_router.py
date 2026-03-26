@@ -1,9 +1,12 @@
 from fastapi import APIRouter, HTTPException, Query
 from time import perf_counter
 from prometheus_client import Counter, Histogram
+import asyncio
 import logging
 
 from mail_validation.services.validation_service import validate_email_internal
+from mail_validation.services.webhook_service import dispatch_webhook
+from mail_validation.storage.webhook_store import WebhookStore
 from mail_validation.models.validation import ValidationResponse
 from mail_validation.models.bulk_validation import (
     BulkValidationRequest,
@@ -11,9 +14,11 @@ from mail_validation.models.bulk_validation import (
     BulkEmailResult,
     BulkValidationSummary,
 )
+from mail_validation.settings import settings
 import mail_validation.jobs.celery_app as celery_app
 
 logger = logging.getLogger(__name__)
+webhook_store = WebhookStore(settings.watermark_db_url)
 router = APIRouter()
 
 VALIDATION_COUNTER = Counter(
@@ -42,6 +47,7 @@ DUPLICATES_REMOVED_COUNTER = Counter(
     "mail_validation_duplicates_removed_total",
     "Total number of duplicate emails removed during bulk validation",
 )
+
 
 @router.get("/trigger")
 async def trigger_validation():
@@ -81,12 +87,22 @@ async def validate_single(
         endpoint="single", status=status, layer=layer
     ).inc()
 
-    return {
+    response = {
         "email": email,
         "status": status,
         "reason": result["reason"],
         "details": result["details"],
     }
+
+    # Fire webhook async — don't block the response
+    asyncio.create_task(dispatch_webhook(webhook_store, {
+        "endpoint": "single",
+        "job_id": None,
+        "summary": {"total": 1, "valid": 1 if result["ok"] else 0, "invalid": 0 if result["ok"] else 1},
+        "result": response,
+    }))
+
+    return response
 
 
 @router.post("/validate-bulk", response_model=BulkValidationResponse)
@@ -196,4 +212,21 @@ async def validate_bulk(payload: BulkValidationRequest):
     if payload.response_mode == "summary_only":
         return BulkValidationResponse(summary=summary, results=None)
 
-    return BulkValidationResponse(summary=summary, results=results)
+    bulk_response = BulkValidationResponse(summary=summary, results=results)
+
+    # Fire webhook async — don't block the response
+    asyncio.create_task(dispatch_webhook(webhook_store, {
+        "endpoint": "bulk",
+        "job_id": None,
+        "summary": {
+            "total": summary.total,
+            "processed": summary.processed,
+            "valid": summary.valid,
+            "invalid": summary.invalid,
+            "errors": summary.errors,
+            "duplicates_removed": summary.duplicates_removed,
+            "duration_ms": summary.duration_ms,
+        },
+    }))
+
+    return bulk_response

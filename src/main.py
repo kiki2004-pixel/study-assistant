@@ -4,6 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from mail_validation.routers.validation_router import router as validation_router
 from mail_validation.routers.listmonk_router import router as listmonk_router
+from mail_validation.routers.webhook_router import router as webhook_router
 from prometheus_fastapi_instrumentator import Instrumentator
 
 CURRENT_DIR = Path(__file__).resolve().parent
@@ -33,4 +34,9 @@ app.include_router(
 # Listmonk Integration: /listmonk/settings, /listmonk/test-connection
 app.include_router(
     router=listmonk_router, prefix="/listmonk", tags=["Listmonk Integration"]
+)
+
+# Webhooks: /webhooks/register, /webhooks/deregister, /webhooks/list
+app.include_router(
+    router=webhook_router, prefix="/webhooks", tags=["Webhooks"]
 )
