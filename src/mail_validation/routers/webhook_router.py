@@ -1,11 +1,13 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, HttpUrl
 
 from mail_validation.settings import settings
 from mail_validation.storage.webhook_store import WebhookStore
 
 router = APIRouter()
-store = WebhookStore(settings.watermark_db_url)
+
+def get_webhook_store() -> WebhookStore:
+    return WebhookStore(settings.watermark_db_url)
 
 class RegisterWebhookRequest(BaseModel):
     url: HttpUrl
@@ -27,12 +29,12 @@ class WebhookListItem(BaseModel):
     active: bool
     failure_count: int
 
+
 @router.post("/register", response_model=RegisterWebhookResponse)
-async def register_webhook(payload: RegisterWebhookRequest):
-    """
-    Register a URL to receive webhook callbacks when validation completes.
-    Returns a signing secret — use it to verify X-Webhook-Signature-256 headers.
-    """
+async def register_webhook(
+    payload: RegisterWebhookRequest,
+    store: WebhookStore = Depends(get_webhook_store),
+):
     reg = store.register(str(payload.url))
     return RegisterWebhookResponse(
         url=reg.url,
@@ -42,8 +44,10 @@ async def register_webhook(payload: RegisterWebhookRequest):
 
 
 @router.delete("/deregister")
-async def deregister_webhook(payload: DeregisterWebhookRequest):
-    """Remove a webhook registration by URL."""
+async def deregister_webhook(
+    payload: DeregisterWebhookRequest,
+    store: WebhookStore = Depends(get_webhook_store),
+):
     removed = store.deregister(str(payload.url))
     if not removed:
         raise HTTPException(status_code=404, detail="Webhook URL not found.")
@@ -51,8 +55,7 @@ async def deregister_webhook(payload: DeregisterWebhookRequest):
 
 
 @router.get("/list", response_model=list[WebhookListItem])
-async def list_webhooks():
-    """List all active webhook registrations."""
+async def list_webhooks(store: WebhookStore = Depends(get_webhook_store)):
     return [
         WebhookListItem(
             id=r.id, url=r.url, active=r.active, failure_count=r.failure_count

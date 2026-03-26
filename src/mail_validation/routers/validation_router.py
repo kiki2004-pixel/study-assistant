@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from time import perf_counter
 from prometheus_client import Counter, Histogram
 import asyncio
@@ -18,7 +18,10 @@ from mail_validation.settings import settings
 import mail_validation.jobs.celery_app as celery_app
 
 logger = logging.getLogger(__name__)
-webhook_store = WebhookStore(settings.watermark_db_url)
+
+
+def get_webhook_store() -> WebhookStore:
+    return WebhookStore(settings.watermark_db_url)
 router = APIRouter()
 
 VALIDATION_COUNTER = Counter(
@@ -58,6 +61,7 @@ async def trigger_validation():
 @router.post("/validate-single", response_model=ValidationResponse)
 async def validate_single(
     email: str = Query(..., description="The email address to verify"),
+    webhook_store: WebhookStore = Depends(get_webhook_store),
 ):
     """
     Validate a single email address using syntax and async DNS layers.
@@ -106,7 +110,10 @@ async def validate_single(
 
 
 @router.post("/validate-bulk", response_model=BulkValidationResponse)
-async def validate_bulk(payload: BulkValidationRequest):
+async def validate_bulk(
+    payload: BulkValidationRequest,
+    webhook_store: WebhookStore = Depends(get_webhook_store),
+):
     """
     Validates up to 30,000 emails in a single request.
     Leverages async concurrency for high-performance DNS lookups.
