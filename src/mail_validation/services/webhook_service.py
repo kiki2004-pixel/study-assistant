@@ -12,8 +12,8 @@ from mail_validation.storage.webhook_store import WebhookStore
 
 logger = logging.getLogger(__name__)
 
-MAX_RETRIES = 3
-RETRY_DELAYS = [2, 5, 10]  # seconds — exponential-ish backoff
+MAX_RETRIES = 3  # retries after the initial attempt = 4 total attempts
+RETRY_DELAYS = [2, 5, 10]  # seconds between each retry
 
 
 async def _deliver(
@@ -62,13 +62,13 @@ async def dispatch_webhook(store: WebhookStore, event_payload: Dict[str, Any]) -
             signature = store.sign_payload(reg.secret, body)
             delivered = False
 
-            for attempt in range(MAX_RETRIES):
+            for attempt in range(MAX_RETRIES + 1):  # initial attempt + MAX_RETRIES retries
                 delivered = await _deliver(client, reg.url, body, signature)
                 if delivered:
                     store.record_success(reg.id)
                     logger.info("Webhook delivered url=%s attempt=%d", reg.url, attempt + 1)
                     break
-                if attempt < MAX_RETRIES - 1:
+                if attempt < MAX_RETRIES:
                     await asyncio.sleep(RETRY_DELAYS[attempt])
 
             if not delivered:
