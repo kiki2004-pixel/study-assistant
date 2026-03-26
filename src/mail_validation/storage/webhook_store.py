@@ -18,6 +18,7 @@ from sqlalchemy import (
     delete,
 )
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy import insert
 
 
 metadata = MetaData()
