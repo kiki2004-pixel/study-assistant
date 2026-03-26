@@ -1,19 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, HttpUrl
 
-<<<<<<<< HEAD:api/src/scrub/routers/webhook_router.py
-from mail_validation.settings import settings
-from mail_validation.storage.webhook_store import WebhookStore
-========
 from scrub.settings import settings, block_ssrf
 from scrub.storage.webhook_store import WebhookStore
->>>>>>>> 15060365 (rebrand mail-validation to scrub across backend, web, and CI):src/scrub/routers/webhook_router.py
 
 router = APIRouter()
 
-
 def get_webhook_store() -> WebhookStore:
     return WebhookStore(settings.watermark_db_url)
+
+
+# Models
+
 
 class RegisterWebhookRequest(BaseModel):
     url: HttpUrl
@@ -23,10 +22,6 @@ class RegisterWebhookResponse(BaseModel):
     url: str
     secret: str
     message: str
-
-
-class DeregisterWebhookRequest(BaseModel):
-    url: HttpUrl
 
 
 class WebhookListItem(BaseModel):
@@ -39,6 +34,7 @@ class WebhookListItem(BaseModel):
 async def register_webhook(
     payload: RegisterWebhookRequest,
     store: WebhookStore = Depends(get_webhook_store),
+    _: str = Depends(verify_api_key),
 ):
     _block_ssrf(payload.url)
     reg = store.register(str(payload.url))
@@ -51,17 +47,21 @@ async def register_webhook(
 
 @router.delete("/deregister")
 async def deregister_webhook(
-    payload: DeregisterWebhookRequest,
+    url: HttpUrl,
     store: WebhookStore = Depends(get_webhook_store),
+    _: str = Depends(verify_api_key),
 ):
-    removed = store.deregister(str(payload.url))
+    removed = store.deregister(str(url))
     if not removed:
         raise HTTPException(status_code=404, detail="Webhook URL not found.")
     return {"message": "Webhook deregistered successfully."}
 
 
 @router.get("/list", response_model=list[WebhookListItem])
-async def list_webhooks(store: WebhookStore = Depends(get_webhook_store)):
+async def list_webhooks(
+    store: WebhookStore = Depends(get_webhook_store),
+    _: str = Depends(verify_api_key),
+):
     return [
         WebhookListItem(
             id=r.id, url=r.url, active=r.active, failure_count=r.failure_count

@@ -10,9 +10,24 @@
     }
   ],
   "__requires": [
-    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" },
-    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" },
-    { "type": "panel", "id": "timeseries", "name": "Time series", "version": "" },
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "10.0.0"
+    },
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    },
     { "type": "panel", "id": "stat", "name": "Stat", "version": "" },
     { "type": "panel", "id": "piechart", "name": "Pie chart", "version": "" },
     { "type": "panel", "id": "histogram", "name": "Histogram", "version": "" }
@@ -26,7 +41,6 @@
   "timezone": "browser",
   "tags": ["scrub", "observability"],
   "panels": [
-
     {
       "id": 1,
       "type": "stat",
@@ -134,31 +148,62 @@
       "title": "Validation rate over time (by status)",
       "gridPos": { "x": 0, "y": 4, "w": 16, "h": 8 },
       "options": {
-        "legend": { "calcs": ["last"], "displayMode": "list", "placement": "bottom" },
+        "legend": {
+          "calcs": ["last"],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
         "tooltip": { "mode": "multi" }
       },
       "fieldConfig": {
-        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "Deliverable" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] },
-          { "matcher": { "id": "byName", "options": "Undeliverable" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] },
-          { "matcher": { "id": "byName", "options": "Error" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }] }
+          {
+            "matcher": { "id": "byName", "options": "Deliverable" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "mode": "fixed", "fixedColor": "green" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Undeliverable" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "mode": "fixed", "fixedColor": "red" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Error" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "mode": "fixed", "fixedColor": "orange" }
+              }
+            ]
+          }
         ]
       },
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(scrub_emails_total{status=\"deliverable\"}[5m]))",
+          "expr": "sum(rate(mail_validation_emails_total{status=\"deliverable\"}[5m]))",
           "legendFormat": "Deliverable"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(scrub_emails_total{status=\"undeliverable\"}[5m]))",
+          "expr": "sum(rate(mail_validation_emails_total{status=\"undeliverable\"}[5m]))",
           "legendFormat": "Undeliverable"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(scrub_emails_total{status=\"error\"}[5m]))",
+          "expr": "sum(rate(mail_validation_emails_total{status=\"error\"}[5m]))",
           "legendFormat": "Error"
         }
       ]
@@ -189,7 +234,11 @@
       "title": "Validation duration (p50 / p95 / p99)",
       "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
       "options": {
-        "legend": { "calcs": ["last"], "displayMode": "list", "placement": "bottom" },
+        "legend": {
+          "calcs": ["last"],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
         "tooltip": { "mode": "multi" }
       },
       "fieldConfig": {
@@ -220,11 +269,18 @@
       "title": "Bulk request size over time",
       "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
       "options": {
-        "legend": { "calcs": ["mean", "max"], "displayMode": "list", "placement": "bottom" },
+        "legend": {
+          "calcs": ["mean", "max"],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
         "tooltip": { "mode": "multi" }
       },
       "fieldConfig": {
-        "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 8 } }
+        "defaults": {
+          "unit": "short",
+          "custom": { "lineWidth": 2, "fillOpacity": 8 }
+        }
       },
       "targets": [
         {
@@ -246,11 +302,18 @@
       "title": "Single vs Bulk endpoint usage",
       "gridPos": { "x": 0, "y": 20, "w": 24, "h": 7 },
       "options": {
-        "legend": { "calcs": ["last", "sum"], "displayMode": "list", "placement": "bottom" },
+        "legend": {
+          "calcs": ["last", "sum"],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
         "tooltip": { "mode": "multi" }
       },
       "fieldConfig": {
-        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 6 } }
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 6 }
+        }
       },
       "targets": [
         {
@@ -265,6 +328,5 @@
         }
       ]
     }
-
   ]
 }
