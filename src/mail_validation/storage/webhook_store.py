@@ -19,7 +19,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
-
 metadata = MetaData()
 
 webhook_registrations = Table(
@@ -49,6 +48,9 @@ class WebhookStore:
         if not db_url:
             raise ValueError("WATERMARK_DB_URL is required")
         self._engine = create_engine(db_url, future=True)
+
+    def init_schema(self) -> None:
+        """Create tables if they don't exist. Call once at app startup."""
         metadata.create_all(self._engine)
 
     def register(self, url: str) -> WebhookRegistration:

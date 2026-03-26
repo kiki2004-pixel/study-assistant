@@ -47,7 +47,7 @@ async def dispatch_webhook(store: WebhookStore, event_payload: Dict[str, Any]) -
     Retries up to MAX_RETRIES times with backoff on failure.
     Deactivates webhook after MAX_FAILURES consecutive failures.
     """
-    registrations = store.list_active()
+    registrations = await asyncio.to_thread(store.list_active)
     if not registrations:
         return
 

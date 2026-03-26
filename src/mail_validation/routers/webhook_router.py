@@ -6,6 +6,7 @@ from mail_validation.storage.webhook_store import WebhookStore
 
 router = APIRouter()
 
+
 def get_webhook_store() -> WebhookStore:
     return WebhookStore(settings.watermark_db_url)
 
@@ -29,12 +30,12 @@ class WebhookListItem(BaseModel):
     active: bool
     failure_count: int
 
-
 @router.post("/register", response_model=RegisterWebhookResponse)
 async def register_webhook(
     payload: RegisterWebhookRequest,
     store: WebhookStore = Depends(get_webhook_store),
 ):
+    _block_ssrf(payload.url)
     reg = store.register(str(payload.url))
     return RegisterWebhookResponse(
         url=reg.url,

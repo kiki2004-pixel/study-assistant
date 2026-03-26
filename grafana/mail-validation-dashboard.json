@@ -148,17 +148,17 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "rate(mail_validation_emails_total{status=\"deliverable\"}[5m])",
+          "expr": "sum(rate(mail_validation_emails_total{status=\"deliverable\"}[5m]))",
           "legendFormat": "Deliverable"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "rate(mail_validation_emails_total{status=\"undeliverable\"}[5m])",
+          "expr": "sum(rate(mail_validation_emails_total{status=\"undeliverable\"}[5m]))",
           "legendFormat": "Undeliverable"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "rate(mail_validation_emails_total{status=\"error\"}[5m])",
+          "expr": "sum(rate(mail_validation_emails_total{status=\"error\"}[5m]))",
           "legendFormat": "Error"
         }
       ]
