@@ -12,3 +12,8 @@ data/grafana/
 data/prometheus/
 .idea/
 celerybeat*
+
+# Web
+web/node_modules/
+web/build/
+web/.react-router/

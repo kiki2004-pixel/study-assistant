@@ -6,6 +6,30 @@ FastAPI service that performs syntax + DNS MX email validation and can automate 
 - Optionally runs a Listmonk job that fetches new subscribers, validates with the same syntax + DNS MX pipeline, and unsubscribes invalid emails.
 - Uses a watermark (created_at + id) so each Listmonk run only processes new subscribers.
 
+## Project structure
+```
+mail-validation/
+├── src/
+│   └── mail_validation/
+│       ├── routers/          # FastAPI route handlers
+│       ├── services/         # Validation, DNS, Listmonk logic
+│       ├── models/           # Pydantic request/response models
+│       ├── validators/       # Email syntax validation
+│       ├── jobs/             # Celery tasks
+│       ├── storage/          # Watermark store (Postgres)
+│       ├── utils/            # Listmonk API client
+│       └── tests/
+├── web/                      # React Router SPA (Bun + Vite)
+│   └── app/
+│       ├── routes/           # home, dashboard, auth.callback
+│       └── components/       # Navbar, Footer
+├── alembic/                  # DB migrations
+├── e2e_tests/                # End-to-end tests
+├── docs/                     # Keycloak client config
+├── docker-compose.yml
+└── prometheus.yml
+```
+
 ## API
 ### POST /validation/validate-single
 Query params:
@@ -26,49 +50,35 @@ Request body:
 ## Listmonk validation job
 This job fetches new subscribers (watermark-based), validates with the same API pipeline, and unsubscribes invalid emails in bulk.
 
-### Required env vars (API token recommended)
-- LISTMONK_BASE_URL
-- LISTMONK_API_USER
-- LISTMONK_API_TOKEN
-
-Compatibility: LISTMONK_URL / LISTMONK_USER / LISTMONK_PASS are also accepted for BasicAuth.
+### Required env vars
+- LISTMONK_URL (default: http://localhost:9000)
+- LISTMONK_USER
+- LISTMONK_PASS
 
 ### Optional env vars
-- LISTMONK_LIST_ID (comma-separated IDs; when set, name-based exclusions are ignored)
-- LISTMONK_EXCLUDE_NAME_SUBSTRINGS (default: test,sample)
-- VALIDATION_BATCH_SIZE (default: 250)
-- VALIDATION_POLL_INTERVAL_SECONDS (default: 300; 0 runs once)
 - CELERY_BROKER_URL (default: redis://localhost:6379/0)
-- CELERY_RESULT_BACKEND (default: CELERY_BROKER_URL)
-- CELERY_RESTART_DELAY_SECONDS (default: 10)
-- WATERMARK_DB_URL (required, Postgres URL for watermark storage)
-- MX_CHECK_ENABLED (default: true)
-- MX_TIMEOUT_SECONDS (default: 2.0)
-
-### Run once
-```
-python -m mail_validation.jobs.listmonk_validator
-```
-
-### Run continuously (polling)
-```
-VALIDATION_POLL_INTERVAL_SECONDS=300 python -m mail_validation.jobs.listmonk_validator
-```
+- CELERY_RESULT_BACKEND (default: redis://localhost:6379/0)
+- WATERMARK_DB_URL (default: sqlite:///./watermarks.db)
+- VALIDATION_BATCH_SIZE (default: 250)
 
 ### Run continuously (Celery + Redis)
-Start Redis:
+Start dependencies:
 ```
-docker run --rm --name some-redis -p 6379:6379 redis:latest
+docker compose up -d listmonk_db listmonk_app redis
 ```
 
 Start a worker:
 ```
-uv run celery -A mail_validation.jobs.listmonk_validator.celery_app worker --loglevel=info
+PYTHONPATH=src \
+LISTMONK_URL=http://localhost:9000 \
+LISTMONK_USER=your_user \
+LISTMONK_PASS=your_password \
+uv run celery -A mail_validation.jobs.celery_app worker --loglevel=info
 ```
 
-Kick off the first cycle (the task reschedules itself):
+Kick off the scheduler:
 ```
-uv run celery -A mail_validation.jobs.listmonk_validator.celery_app call mail_validation.listmonk.run_cycle
+PYTHONPATH=src uv run celery -A mail_validation.jobs.celery_app call start_scheduler
 ```
 
 ## Local development
@@ -84,8 +94,9 @@ This repo includes a Listmonk + Postgres setup in `docker-compose.yml`.
 ```
 LISTMONK_ADMIN_USER=admin
 LISTMONK_ADMIN_PASSWORD=admin123
-LISTMONK_BASE_URL=http://listmonk:9000
-LISTMONK_LIST_ID=1
+LISTMONK_URL=http://localhost:9000
+LISTMONK_USER=admin
+LISTMONK_PASS=admin123
 ```
 
 2) Start services
@@ -98,18 +109,44 @@ docker compose up -d listmonk_db listmonk_app
 - Create a list and note its ID
 - Update LISTMONK_LIST_ID if needed
 
-4) Create an API user and token
-- In Listmonk UI: Admin -> Users -> New user
-- Assign a role with subscriber read + list membership update permissions
-- Copy the token and set:
+4) Start the Celery worker and kick off the scheduler as described above
+
+## Web UI
+
+### Keycloak setup
+The web app uses OIDC via Keycloak. Import the client config before running the UI.
+
+1. Start Keycloak:
 ```
-LISTMONK_API_USER=validator
-LISTMONK_API_TOKEN=your_api_token
+docker compose up -d keycloak
 ```
 
-5) Run the validation job
+2. Open http://localhost:8080 and log in (admin / admin)
+
+3. Select your realm, go to **Clients** -> **Import client**, and upload `docs/client.json`
+
+### Running locally
+1. Copy the env file:
 ```
-python -m mail_validation.jobs.listmonk_validator
+cp web/.env.example web/.env
+```
+
+2. Install dependencies:
+```
+cd web && bun install
+```
+
+3. Start the dev server:
+```
+bun run dev
+```
+
+The app will be available at http://localhost:5173.
+
+### Running with Docker
+```
+docker build -t mail-validation-web web/
+docker run -p 5173:80 mail-validation-web
 ```
 
 ## Migrations
