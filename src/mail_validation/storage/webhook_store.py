@@ -17,7 +17,9 @@ from sqlalchemy import (
     update,
     delete,
 )
-from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy import insert
+
 
 metadata = MetaData()
 
@@ -57,7 +59,7 @@ class WebhookStore:
         """Register a new webhook URL using atomic upsert to avoid race conditions."""
         secret = secrets.token_hex(32)
         stmt = (
-            sqlite_insert(webhook_registrations)
+            pg_insert(webhook_registrations)
             .values(url=url, secret=secret, active=True, failure_count=0)
             .on_conflict_do_update(
                 index_elements=[webhook_registrations.c.url],
