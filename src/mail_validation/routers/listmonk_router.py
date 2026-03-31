@@ -47,11 +47,11 @@ async def get_listmonk_settings():
 
 @router.post("/test-connection", response_model=ConnectionTestResponse)
 async def test_listmonk_connection(payload: ListmonkSettings):
-    block_ssrf(payload.listmonk_url)
     """
     Tests a Listmonk connection using the provided credentials.
     Hits the /api/health endpoint and fetches subscriber count to verify access.
     """
+    block_ssrf(payload.listmonk_url)
     try:
         async with httpx.AsyncClient(
             base_url=payload.listmonk_url,
