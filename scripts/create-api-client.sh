@@ -4,8 +4,8 @@
 # All steps are idempotent - safe to run multiple times.
 
 # --- Configuration: Default values ---
-DEFAULT_KEYCLOAK_URL="https://auth.scrub.test"
-DEFAULT_REDIRECT_URIS="https://api.scrub.test/*"
+DEFAULT_KEYCLOAK_URL="http://localhost:8080"
+DEFAULT_REDIRECT_URIS="http://localhost:3000/*"
 
 # --- Helper Functions ---
 usage() {

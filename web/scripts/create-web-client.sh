@@ -5,10 +5,10 @@
 # All steps are idempotent - safe to run multiple times.
 
 # --- Configuration: Default values ---
-DEFAULT_KEYCLOAK_URL="https://auth.scrub.test"
-DEFAULT_REDIRECT_URIS="https://scrub.test/auth/callback"
-DEFAULT_POST_LOGOUT_REDIRECT_URIS="https://scrub.test"
-DEFAULT_WEB_ORIGINS="https://scrub.test"
+DEFAULT_KEYCLOAK_URL="http://localhost:8080"
+DEFAULT_REDIRECT_URIS="http://localhost:5173/auth/callback"
+DEFAULT_POST_LOGOUT_REDIRECT_URIS="http://localhost:5173"
+DEFAULT_WEB_ORIGINS="http://localhost:5173"
 
 # --- Helper Functions ---
 usage() {
@@ -49,7 +49,7 @@ WEB_ORIGINS_PARAM="${DEFAULT_WEB_ORIGINS}"
 ADMIN_USERNAME="admin"
 ADMIN_PASSWORD="admin"
 REALM_NAME="master"
-CLIENT_ID="web"
+CLIENT_ID="app"
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -410,7 +410,9 @@ echo "-----------------------------------------------------"
 echo "Done. Frontend public client '${CLIENT_ID}' is ready."
 echo ""
 echo "Use these environment variables in your frontend .env:"
-echo "  NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=${CLIENT_ID}"
-echo "  NEXT_PUBLIC_KEYCLOAK_ISSUER=${KEYCLOAK_URL}/realms/${REALM_NAME}"
+echo "  VITE_OIDC_CLIENT_ID=${CLIENT_ID}"
+echo "  VITE_OIDC_AUTHORITY=${KEYCLOAK_URL}/realms/${REALM_NAME}"
+echo "  VITE_OIDC_REDIRECT_URI=http://localhost:5173/auth/callback"
+echo "  VITE_OIDC_POST_LOGOUT_REDIRECT_URI=http://localhost:5173"
 echo "-----------------------------------------------------"
 exit 0
