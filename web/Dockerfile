@@ -1,7 +1,10 @@
-FROM docker.io/oven/bun:1-alpine
+FROM docker.io/oven/bun:1-alpine AS builder
 WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 COPY . .
+RUN bun run build
+
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 80
-CMD ["bun", "run", "dev", "--host", "0.0.0.0", "--port", "80"]
