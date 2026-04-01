@@ -12,6 +12,7 @@ services:
       - LISTMONK_LIST_ID=${LISTMONK_LIST_ID:-1}
       - LISTMONK_EXCLUDE_NAME_SUBSTRINGS=${LISTMONK_EXCLUDE_NAME_SUBSTRINGS:-}
       - WATERMARK_DB_URL=${WATERMARK_DB_URL:-postgresql+psycopg2://listmonk:listmonk@listmonk_db:5432/listmonk}
+      - API_KEY=${API_KEY:-local-dev-api-key}
       - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
     restart: unless-stopped
