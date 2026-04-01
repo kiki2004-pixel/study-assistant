@@ -16,7 +16,7 @@ export function UnauthenticatedNavbar() {
             </Text>
           </Flex>
           <Flex align="center" gap={3}>
-<Button
+            <Button
               size="sm"
               bg="brand.solid"
               color="brand.contrast"
