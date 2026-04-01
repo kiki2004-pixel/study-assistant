@@ -47,6 +47,12 @@ Request body:
 }
 ```
 
+### GET /validation/trigger
+Manually triggers the Listmonk validation scheduler.
+
+### GET /metrics
+Prometheus metrics endpoint for observability.
+
 ## Listmonk validation job
 This job fetches new subscribers (watermark-based), validates with the same API pipeline, and unsubscribes invalid emails in bulk.
 
@@ -58,8 +64,11 @@ This job fetches new subscribers (watermark-based), validates with the same API 
 ### Optional env vars
 - CELERY_BROKER_URL (default: redis://localhost:6379/0)
 - CELERY_RESULT_BACKEND (default: redis://localhost:6379/0)
-- WATERMARK_DB_URL (default: sqlite:///./watermarks.db)
+- WATERMARK_DB_URL (default: postgresql+psycopg2://listmonk:listmonk@listmonk_db:5432/listmonk when using Docker)
 - VALIDATION_BATCH_SIZE (default: 250)
+- VALIDATION_POLL_INTERVAL_SECONDS (default: 60)
+- LISTMONK_LIST_ID
+- LISTMONK_EXCLUDE_NAME_SUBSTRINGS
 
 ### Run continuously (Celery + Redis)
 Start dependencies:
@@ -76,7 +85,7 @@ LISTMONK_PASS=your_password \
 uv run celery -A mail_validation.jobs.celery_app worker --loglevel=info
 ```
 
-Kick off the scheduler:
+The scheduler runs automatically every `VALIDATION_POLL_INTERVAL_SECONDS` seconds via Celery beat. To trigger it manually, call `GET /validation/trigger` or:
 ```
 PYTHONPATH=src uv run celery -A mail_validation.jobs.celery_app call start_scheduler
 ```
@@ -131,6 +140,14 @@ docker compose up -d keycloak
 cp web/.env.example web/.env
 ```
 
+Configure the following variables in `web/.env`:
+```
+VITE_OIDC_AUTHORITY=http://localhost:8080/realms/master
+VITE_OIDC_CLIENT_ID=app
+VITE_OIDC_REDIRECT_URI=http://localhost:5173/auth/callback
+VITE_OIDC_POST_LOGOUT_REDIRECT_URI=http://localhost:5173
+```
+
 2. Install dependencies:
 ```
 cd web && bun install
@@ -147,6 +164,23 @@ The app will be available at http://localhost:5173.
 ```
 docker build -t mail-validation-web web/
 docker run -p 5173:80 mail-validation-web
+```
+
+## Observability
+The stack includes Prometheus and Grafana for metrics.
+
+- Prometheus scrapes `GET /metrics` and is available at http://localhost:9090
+- Grafana is available at http://localhost:3001
+
+Start both services:
+```
+docker compose up -d prometheus grafana
+```
+
+Configure Grafana credentials via env vars:
+```
+GF_SECURITY_ADMIN_USER=admin
+GF_SECURITY_ADMIN_PASSWORD=yourpassword
 ```
 
 ## Migrations
