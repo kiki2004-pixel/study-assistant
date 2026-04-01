@@ -1,13 +1,14 @@
-
-
 services:
   mail-validation-service:
     build: .
     ports:
       - "3000:3000"
     environment:
-      - LISTMONK_URL=${LISTMONK_URL:-http://listmonk_app:9000}
-      - LISTMONK_USER=${LISTMONK_USER:-kiki}
+      - PYTHONPATH=/app/src
+      - PYTHONUNBUFFERED=1
+      - AGENT_NAME=mail-validation-service
+      - LISTMONK_URL=${LISTMONK_URL:-}
+      - LISTMONK_USER=${LISTMONK_USER:-}
       - LISTMONK_PASS=${LISTMONK_PASS:-}
       - LISTMONK_LIST_ID=${LISTMONK_LIST_ID:-1}
       - LISTMONK_EXCLUDE_NAME_SUBSTRINGS=${LISTMONK_EXCLUDE_NAME_SUBSTRINGS:-}
@@ -48,7 +49,16 @@ services:
       - WATERMARK_DB_URL=postgresql+psycopg2://listmonk:listmonk@listmonk_db:5432/listmonk
       - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
-    command: ["/app/.venv/bin/python", "-m", "celery", "-A", "mail_validation.jobs.celery_app", "worker", "--loglevel=info"]
+    command:
+      [
+        "/app/.venv/bin/python",
+        "-m",
+        "celery",
+        "-A",
+        "mail_validation.jobs.celery_app",
+        "worker",
+        "--loglevel=info",
+      ]
     restart: unless-stopped
 
   keycloak:
@@ -95,10 +105,10 @@ services:
     ports:
       - "9090:9090"
     extra_hosts:
-      - "host.docker.internal:host-gateway" 
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./data/prometheus:/prometheus  # Moved to data subfolder
+      - ./data/prometheus:/prometheus # Moved to data subfolder
     restart: unless-stopped
 
   grafana:
