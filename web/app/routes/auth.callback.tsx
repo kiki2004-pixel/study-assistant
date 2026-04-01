@@ -8,11 +8,37 @@ export default function AuthCallback() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!auth.isLoading && auth.isAuthenticated) {
-      navigate("/dashboard");
-    }
-  }, [auth.isLoading, auth.isAuthenticated, navigate]);
+    let isMounted = true;
 
+    const completeSignin = async () => {
+      try {
+        // If already authenticated (e.g. callback handled elsewhere), just navigate.
+        if (auth.isAuthenticated) {
+          navigate("/dashboard");
+          return;
+        }
+
+        // Explicitly process the OIDC redirect response if a UserManager is available.
+        if (auth.userManager) {
+          await auth.userManager.signinRedirectCallback();
+          if (!isMounted) {
+            return;
+          }
+          navigate("/dashboard");
+        }
+      } catch (e) {
+        // Let react-oidc-context surface the error via auth.error; also log for debugging.
+        // eslint-disable-next-line no-console
+        console.error("Error handling sign-in callback", e);
+      }
+    };
+
+    completeSignin();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [auth.isAuthenticated, auth.userManager, navigate]);
   if (auth.error) {
     return (
       <Container maxW="md" centerContent py="20">
