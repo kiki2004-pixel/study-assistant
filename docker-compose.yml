@@ -6,8 +6,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - LISTMONK_URL=${LISTMONK_URL:-http://listmonk_app:9000}
-      - LISTMONK_USER=${LISTMONK_USER:-kiki}
+
+      - PYTHONPATH=/app/src
+      - PYTHONUNBUFFERED=1
+      - AGENT_NAME=mail-validation-service
+      - LISTMONK_URL=${LISTMONK_URL:-}
+      - LISTMONK_USER=${LISTMONK_USER:-}
       - LISTMONK_PASS=${LISTMONK_PASS:-}
       - LISTMONK_LIST_ID=${LISTMONK_LIST_ID:-1}
       - LISTMONK_EXCLUDE_NAME_SUBSTRINGS=${LISTMONK_EXCLUDE_NAME_SUBSTRINGS:-}
@@ -15,7 +19,6 @@ services:
       - API_KEY=${API_KEY:-local-dev-api-key}
       - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
-      - AGENT_NAME=mail-validation-service
     restart: unless-stopped
     depends_on:
       - listmonk_app
@@ -35,20 +38,58 @@ services:
       - listmonk_app
     environment:
       - PYTHONPATH=/app/src
+      - PYTHONUNBUFFERED=1
       - C_FORCE_ROOT=true
-      # We provide EVERY variant the code might look for
-      - LISTMONK_BASE_URL=http://listmonk_app:9000
-      - LISTMONK_URL=http://listmonk_app:9000
-      - LISTMONK_USER=kiki
-      - LISTMONK_PASS=Uh9t9APHqdWqwKW4hP4uE23lc8hGOMAv
-      - LISTMONK_LIST_ID=1
+      - LISTMONK_URL=http://listmonk:9000
+      - LISTMONK_USER=${LISTMONK_USER:-}
+      - LISTMONK_PASS=${LISTMONK_PASS:-}
+      - LISTMONK_LIST_ID=${LISTMONK_LIST_ID:-}
+      - LISTMONK_EXCLUDE_NAME_SUBSTRINGS=${LISTMONK_EXCLUDE_NAME_SUBSTRINGS:-}
+      - VALIDATION_BATCH_SIZE=${VALIDATION_BATCH_SIZE:-250}
+      - VALIDATION_POLL_INTERVAL_SECONDS=${VALIDATION_POLL_INTERVAL_SECONDS:-60}
       - WATERMARK_DB_URL=postgresql+psycopg2://listmonk:listmonk@listmonk_db:5432/listmonk
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-    command: ["/app/.venv/bin/python", "-m", "celery", "-A", "mail_validation.jobs.listmonk_validator.celery_app", "worker", "--loglevel=info"]
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+    command: ["/app/.venv/bin/python", "-m", "celery", "-A", "mail_validation.jobs.celery_app", "worker", "--loglevel=info"]
     restart: unless-stopped
 
+  keycloak:
+    container_name: keycloak
+    image: ghcr.io/nerd-zero/auth:2025.07.002-alpha
+    restart: unless-stopped
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: keycloak-db
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
 
+  keycloak-db:
+    container_name: keycloak-db
+    image: docker.io/postgres:17
+    restart: unless-stopped
+    expose:
+      - 5432
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    volumes:
+      - keycloak-db:/var/lib/postgresql/data
 
   prometheus:
     image: prom/prometheus:latest
@@ -127,23 +168,5 @@ services:
     volumes:
       - ./data/listmonk/db:/var/lib/postgresql/data
 
-  listmonk-validator:
-    build: .
-    depends_on:
-      - listmonk_app
-      - redis
-    environment:
-      - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app/src
-      - LISTMONK_BASE_URL=http://listmonk:9000
-      - LISTMONK_API_USER=${LISTMONK_API_USER}
-      - LISTMONK_API_TOKEN=${LISTMONK_API_TOKEN}
-      - LISTMONK_LIST_ID=${LISTMONK_LIST_ID}
-      - LISTMONK_EXCLUDE_NAME_SUBSTRINGS=${LISTMONK_EXCLUDE_NAME_SUBSTRINGS:-}
-      - VALIDATION_BATCH_SIZE=${VALIDATION_BATCH_SIZE:-100}
-      - VALIDATION_POLL_INTERVAL_SECONDS=${VALIDATION_POLL_INTERVAL_SECONDS:-60}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
-      - WATERMARK_DB_URL=postgresql+psycopg2://listmonk:listmonk@listmonk_db:5432/listmonk
-    command: ["/app/.venv/bin/python", "-m", "mail_validation.jobs.listmonk_validator"]
-    restart: unless-stopped
+volumes:
+  keycloak-db:
