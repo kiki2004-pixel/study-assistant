@@ -16,7 +16,7 @@ export function AuthenticatedNavbar() {
             </Text>
           </Flex>
           <Flex align="center" gap={3}>
-<Text
+            <Text
               fontSize="sm"
               color="fg.muted"
               display={{ base: "none", md: "block" }}
