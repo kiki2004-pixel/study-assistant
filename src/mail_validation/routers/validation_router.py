@@ -52,6 +52,7 @@ DUPLICATES_REMOVED_COUNTER = Counter(
     "Total number of duplicate emails removed during bulk validation",
 )
 
+
 # Routes
 
 @router.get("/trigger")
@@ -62,8 +63,8 @@ async def trigger_validation():
 
 @router.post("/validate-single", response_model=ValidationResponse)
 async def validate_single(
-    email: str = Query(..., description="The email address to verify"),
     background_tasks: BackgroundTasks,
+    email: str = Query(..., description="The email address to verify"),
     webhook_store: WebhookStore = Depends(get_webhook_store),
 ):
     """
@@ -115,8 +116,8 @@ async def validate_single(
 
 @router.post("/validate-bulk", response_model=BulkValidationResponse)
 async def validate_bulk(
-    payload: BulkValidationRequest,
     background_tasks: BackgroundTasks,
+    payload: BulkValidationRequest,
     webhook_store: WebhookStore = Depends(get_webhook_store),
 ):
     """

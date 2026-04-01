@@ -18,7 +18,6 @@ from sqlalchemy import (
     delete,
 )
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy import insert
 
 
 metadata = MetaData()
