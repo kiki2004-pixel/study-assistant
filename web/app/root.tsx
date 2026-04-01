@@ -22,7 +22,7 @@ const oidcConfig = {
   post_logout_redirect_uri:
     import.meta.env.VITE_OIDC_POST_LOGOUT_REDIRECT_URI ||
     "http://localhost:5173",
-  scope: "openid",
+  scope: "openid profile email",
 };
 
 export function Layout({ children }: { children: React.ReactNode }) {
