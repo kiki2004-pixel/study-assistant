@@ -15,10 +15,47 @@ from mail_validation.models.bulk_validation import (
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+# Prometheus Metrics
+
+VALIDATION_COUNTER = Counter(
+    "mail_validation_emails_total",
+    "Total number of emails validated",
+    ["endpoint", "status", "layer"],
+    # endpoint: "single" | "bulk"
+    # status:   "deliverable" | "undeliverable" | "error"
+    # layer:    "syntax" | "dns" | "internal"
+)
+
+VALIDATION_DURATION = Histogram(
+    "mail_validation_duration_seconds",
+    "Time spent validating emails",
+    ["endpoint"],
+    buckets=[0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0],
+)
+
+BULK_SIZE_HISTOGRAM = Histogram(
+    "mail_validation_bulk_size",
+    "Number of emails submitted per bulk request",
+    buckets=[1, 10, 50, 100, 500, 1000, 5000, 10000, 30000],
+)
+
+DUPLICATES_REMOVED_COUNTER = Counter(
+    "mail_validation_duplicates_removed_total",
+    "Total number of duplicate emails removed during bulk validation",
+)
+
+# Routes
+
+@router.get("/trigger")
+async def trigger_validation():
+    celery_app.start_scheduler.delay()
+    return {"message": "Scheduler started"}
 
 @router.post("/validate-single", response_model=ValidationResponse)
 async def validate_single(
     email: str = Query(..., description="The email address to verify"),
+    background_tasks: BackgroundTasks,
+    webhook_store: WebhookStore = Depends(get_webhook_store),
 ):
     """
     Validate a single email address using syntax and async DNS layers.
@@ -47,7 +84,13 @@ async def validate_single(
 
 
 @router.post("/validate-bulk", response_model=BulkValidationResponse)
-async def validate_bulk(payload: BulkValidationRequest):
+
+async def validate_bulk(
+    payload: BulkValidationRequest,
+    background_tasks: BackgroundTasks,
+    webhook_store: WebhookStore = Depends(get_webhook_store),
+):
+
     """
     Validates up to 30,000 emails in a single request.
     Leverages async concurrency for high-performance DNS lookups.
