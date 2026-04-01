@@ -73,6 +73,10 @@ class WebhookStore:
                     webhook_registrations.c.url == url
                 )
             ).first()
+        if row is None:
+            raise RuntimeError(
+                f"Failed to register webhook URL {url!r}: no row returned after upsert"
+            )
         return WebhookRegistration(
             id=row[0], url=row[1], secret=row[2], active=row[3], failure_count=row[4]
         )

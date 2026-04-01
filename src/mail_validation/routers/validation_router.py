@@ -23,6 +23,8 @@ def get_webhook_store() -> WebhookStore:
     return WebhookStore(settings.watermark_db_url)
 router = APIRouter()
 
+# Prometheus Metrics
+
 VALIDATION_COUNTER = Counter(
     "mail_validation_emails_total",
     "Total number of emails validated",
@@ -50,6 +52,8 @@ DUPLICATES_REMOVED_COUNTER = Counter(
     "Total number of duplicate emails removed during bulk validation",
 )
 
+# Routes
+
 @router.get("/trigger")
 async def trigger_validation():
     celery_app.start_scheduler.delay()
@@ -59,7 +63,7 @@ async def trigger_validation():
 @router.post("/validate-single", response_model=ValidationResponse)
 async def validate_single(
     email: str = Query(..., description="The email address to verify"),
-    background_tasks: BackgroundTasks = BackgroundTasks(),
+    background_tasks: BackgroundTasks,
     webhook_store: WebhookStore = Depends(get_webhook_store),
 ):
     """
@@ -112,7 +116,7 @@ async def validate_single(
 @router.post("/validate-bulk", response_model=BulkValidationResponse)
 async def validate_bulk(
     payload: BulkValidationRequest,
-    background_tasks: BackgroundTasks = BackgroundTasks(),
+    background_tasks: BackgroundTasks,
     webhook_store: WebhookStore = Depends(get_webhook_store),
 ):
     """
