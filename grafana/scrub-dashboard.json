@@ -17,14 +17,14 @@
     { "type": "panel", "id": "piechart", "name": "Pie chart", "version": "" },
     { "type": "panel", "id": "histogram", "name": "Histogram", "version": "" }
   ],
-  "title": "Mail Validation Service",
-  "uid": "mail-validation-v1",
+  "title": "Scrub",
+  "uid": "scrub-v1",
   "schemaVersion": 38,
   "version": 1,
   "refresh": "30s",
   "time": { "from": "now-24h", "to": "now" },
   "timezone": "browser",
-  "tags": ["mail-validation", "observability"],
+  "tags": ["scrub", "observability"],
   "panels": [
 
     {
@@ -47,7 +47,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(mail_validation_emails_total)",
+          "expr": "sum(scrub_emails_total)",
           "legendFormat": "Total"
         }
       ]
@@ -72,7 +72,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(mail_validation_emails_total{status=\"deliverable\"})",
+          "expr": "sum(scrub_emails_total{status=\"deliverable\"})",
           "legendFormat": "Deliverable"
         }
       ]
@@ -97,7 +97,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(mail_validation_emails_total{status=\"undeliverable\"})",
+          "expr": "sum(scrub_emails_total{status=\"undeliverable\"})",
           "legendFormat": "Undeliverable"
         }
       ]
@@ -122,7 +122,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "mail_validation_duplicates_removed_total",
+          "expr": "scrub_duplicates_removed_total",
           "legendFormat": "Duplicates"
         }
       ]
@@ -148,17 +148,17 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(mail_validation_emails_total{status=\"deliverable\"}[5m]))",
+          "expr": "sum(rate(scrub_emails_total{status=\"deliverable\"}[5m]))",
           "legendFormat": "Deliverable"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(mail_validation_emails_total{status=\"undeliverable\"}[5m]))",
+          "expr": "sum(rate(scrub_emails_total{status=\"undeliverable\"}[5m]))",
           "legendFormat": "Undeliverable"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(mail_validation_emails_total{status=\"error\"}[5m]))",
+          "expr": "sum(rate(scrub_emails_total{status=\"error\"}[5m]))",
           "legendFormat": "Error"
         }
       ]
@@ -177,7 +177,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum by (layer) (mail_validation_emails_total)",
+          "expr": "sum by (layer) (scrub_emails_total)",
           "legendFormat": "{{layer}}"
         }
       ]
@@ -198,17 +198,17 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "histogram_quantile(0.50, sum(rate(mail_validation_duration_seconds_bucket[5m])) by (le, endpoint))",
+          "expr": "histogram_quantile(0.50, sum(rate(scrub_duration_seconds_bucket[5m])) by (le, endpoint))",
           "legendFormat": "p50 {{endpoint}}"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "histogram_quantile(0.95, sum(rate(mail_validation_duration_seconds_bucket[5m])) by (le, endpoint))",
+          "expr": "histogram_quantile(0.95, sum(rate(scrub_duration_seconds_bucket[5m])) by (le, endpoint))",
           "legendFormat": "p95 {{endpoint}}"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "histogram_quantile(0.99, sum(rate(mail_validation_duration_seconds_bucket[5m])) by (le, endpoint))",
+          "expr": "histogram_quantile(0.99, sum(rate(scrub_duration_seconds_bucket[5m])) by (le, endpoint))",
           "legendFormat": "p99 {{endpoint}}"
         }
       ]
@@ -229,12 +229,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "histogram_quantile(0.50, rate(mail_validation_bulk_size_bucket[5m]))",
+          "expr": "histogram_quantile(0.50, rate(scrub_bulk_size_bucket[5m]))",
           "legendFormat": "p50 batch size"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "histogram_quantile(0.95, rate(mail_validation_bulk_size_bucket[5m]))",
+          "expr": "histogram_quantile(0.95, rate(scrub_bulk_size_bucket[5m]))",
           "legendFormat": "p95 batch size"
         }
       ]
@@ -255,12 +255,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(mail_validation_emails_total{endpoint=\"single\"}[5m]))",
+          "expr": "sum(rate(scrub_emails_total{endpoint=\"single\"}[5m]))",
           "legendFormat": "Single endpoint"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(mail_validation_emails_total{endpoint=\"bulk\"}[5m]))",
+          "expr": "sum(rate(scrub_emails_total{endpoint=\"bulk\"}[5m]))",
           "legendFormat": "Bulk endpoint"
         }
       ]

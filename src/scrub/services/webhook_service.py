@@ -8,7 +8,7 @@ from typing import Any, Dict
 
 import httpx
 
-from mail_validation.storage.webhook_store import WebhookStore
+from scrub.storage.webhook_store import WebhookStore
 
 logger = logging.getLogger(__name__)
 

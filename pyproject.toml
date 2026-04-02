@@ -1,5 +1,5 @@
 [project]
-name = "mail-validation-service"
+name = "scrub"
 version = "2026.02.002"
 description = "AI backend responsible for receiving, validating and blacklisting invalid emails for clients"
 readme = "README.md"

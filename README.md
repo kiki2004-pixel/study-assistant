@@ -1,4 +1,4 @@
-# Mail-Validator
+# Scrub
 FastAPI service that performs syntax + DNS MX email validation and can automate Listmonk list hygiene.
 
 ## What it does
@@ -8,9 +8,9 @@ FastAPI service that performs syntax + DNS MX email validation and can automate 
 
 ## Project structure
 ```
-mail-validation/
+scrub/
 ├── src/
-│   └── mail_validation/
+│   └── scrub/
 │       ├── routers/          # FastAPI route handlers
 │       ├── services/         # Validation, DNS, Listmonk logic
 │       ├── models/           # Pydantic request/response models
@@ -82,12 +82,12 @@ PYTHONPATH=src \
 LISTMONK_URL=http://localhost:9000 \
 LISTMONK_USER=your_user \
 LISTMONK_PASS=your_password \
-uv run celery -A mail_validation.jobs.celery_app worker --loglevel=info
+uv run celery -A scrub.jobs.celery_app worker --loglevel=info
 ```
 
 The scheduler runs automatically every `VALIDATION_POLL_INTERVAL_SECONDS` seconds via Celery beat. To trigger it manually, call `GET /validation/trigger` or:
 ```
-PYTHONPATH=src uv run celery -A mail_validation.jobs.celery_app call start_scheduler
+PYTHONPATH=src uv run celery -A scrub.jobs.celery_app call start_scheduler
 ```
 
 ## Local development
@@ -162,8 +162,8 @@ The app will be available at http://localhost:5173.
 
 ### Running with Docker
 ```
-docker build -t mail-validation-web web/
-docker run -p 5173:80 mail-validation-web
+docker build -t scrub-web web/
+docker run -p 5173:80 scrub-web
 ```
 
 ## Observability

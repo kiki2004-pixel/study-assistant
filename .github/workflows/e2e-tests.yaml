@@ -1,4 +1,4 @@
-name: E2E Mail Validation Tests
+name: E2E Scrub Tests
 
 on:
   push:

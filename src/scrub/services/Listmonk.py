@@ -3,7 +3,7 @@ import httpx
 from listmonk.models import Subscriber
 from pydantic import BaseModel
 
-from mail_validation.settings import Settings
+from scrub.settings import Settings
 
 class BlocklistSubscriberResult(BaseModel):
     data: bool

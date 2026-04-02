@@ -3,18 +3,18 @@ from time import perf_counter
 from prometheus_client import Counter, Histogram
 import logging
 
-from mail_validation.services.validation_service import validate_email_internal
-from mail_validation.services.webhook_service import dispatch_webhook
-from mail_validation.storage.webhook_store import WebhookStore
-from mail_validation.models.validation import ValidationResponse
-from mail_validation.models.bulk_validation import (
+from scrub.services.validation_service import validate_email_internal
+from scrub.services.webhook_service import dispatch_webhook
+from scrub.storage.webhook_store import WebhookStore
+from scrub.models.validation import ValidationResponse
+from scrub.models.bulk_validation import (
     BulkValidationRequest,
     BulkValidationResponse,
     BulkEmailResult,
     BulkValidationSummary,
 )
-from mail_validation.settings import settings
-import mail_validation.jobs.celery_app as celery_app
+from scrub.settings import settings
+import scrub.jobs.celery_app as celery_app
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ router = APIRouter()
 # Prometheus Metrics
 
 VALIDATION_COUNTER = Counter(
-    "mail_validation_emails_total",
+    "scrub_emails_total",
     "Total number of emails validated",
     ["endpoint", "status", "layer"],
     # endpoint: "single" | "bulk"
@@ -35,20 +35,20 @@ VALIDATION_COUNTER = Counter(
 )
 
 VALIDATION_DURATION = Histogram(
-    "mail_validation_duration_seconds",
+    "scrub_duration_seconds",
     "Time spent validating emails",
     ["endpoint"],
     buckets=[0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0],
 )
 
 BULK_SIZE_HISTOGRAM = Histogram(
-    "mail_validation_bulk_size",
+    "scrub_bulk_size",
     "Number of emails submitted per bulk request",
     buckets=[1, 10, 50, 100, 500, 1000, 5000, 10000, 30000],
 )
 
 DUPLICATES_REMOVED_COUNTER = Counter(
-    "mail_validation_duplicates_removed_total",
+    "scrub_duplicates_removed_total",
     "Total number of duplicate emails removed during bulk validation",
 )
 

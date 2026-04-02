@@ -3,7 +3,7 @@ from pydantic import BaseModel, HttpUrl
 
 import httpx
 
-from mail_validation.settings import get_settings, block_ssrf
+from scrub.settings import get_settings, block_ssrf
 
 router = APIRouter()
 

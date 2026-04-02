@@ -9,9 +9,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 # 3. Metadata Labels (Standard in production environments)
 LABEL \
     vendor="Nerd Zero" \
-    name="mail-validation-service" \
-    summary="Mail validation service" \
-    org.opencontainers.image.description="Mail validation service" \
+    name="scrub" \
+    summary="Scrub service" \
+    org.opencontainers.image.description="Scrub service" \
     org.opencontainers.image.source="https://github.com" \
     maintainer="Nerd Zero <kuda@n0.rocks>" \
     vcs-ref="$GIT_COMMIT" \
@@ -36,7 +36,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . /app
 
 # 8. Path Configuration
-# This ensures 'mail_validation' is importable from the 'src' directory
+# This ensures 'scrub' is importable from the 'src' directory
 ENV PYTHONPATH=/app/src
 # Ensure Python output is sent straight to terminal (useful for Docker logs)
 ENV PYTHONUNBUFFERED=1

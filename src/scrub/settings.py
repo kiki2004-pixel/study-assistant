@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # App General Settings
-    APP_NAME: str = "Mail Validation Service"
+    APP_NAME: str = "Scrub"
     DEBUG: bool = False
 
     # API Key

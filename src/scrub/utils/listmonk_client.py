@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional
 import requests
 from requests import Response
-from mail_validation.settings import Settings, get_settings
+from scrub.settings import Settings, get_settings
 
 DEFAULT_TIMEOUT = 10
 

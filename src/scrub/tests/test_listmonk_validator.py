@@ -3,12 +3,12 @@ import pytest
 from sqlalchemy import create_engine, text
 from unittest.mock import patch
 
-from mail_validation.jobs.listmonk_validator import ListmonkValidatorJob
-from mail_validation.services.listmonk_client import ListmonkSubscriber
-from mail_validation.storage.watermark_store import WatermarkStore, metadata
+from scrub.jobs.listmonk_validator import ListmonkValidatorJob
+from scrub.services.listmonk_client import ListmonkSubscriber
+from scrub.storage.watermark_store import WatermarkStore, metadata
 
 # 1. Path to mock (Must match where the worker imports it)
-DNS_MOCK_PATH = "mail_validation.jobs.listmonk_validator.check_dns_records"
+DNS_MOCK_PATH = "scrub.jobs.listmonk_validator.check_dns_records"
 
 
 class FakeListmonkClient:

@@ -1,10 +1,10 @@
 import time
 
 from celery.app import Celery
-
-from mail_validation.services.Listmonk import Listmonk
-from mail_validation.settings import Settings
 from email_validator import validate_email
+
+from scrub.services.Listmonk import Listmonk
+from scrub.settings import Settings
 
 settings = Settings()
 celery_app = Celery(
@@ -30,17 +30,19 @@ def validate_emails(page: int, page_size: int):
 
 @celery_app.task(name="start_scheduler")
 def start_scheduler():
-        listmonk = Listmonk(Settings())
-        total = listmonk.subscribers_count()
-        print(f"Total subscribers: {total}")
-        page = 1
-        while True:
-            validate_emails.delay(page, 100)
-            print(f"Starting page {page}")
-            if page * 100 >= total:
-                break
-            page += 1
-        time.sleep(60)
+    listmonk = Listmonk(Settings())
+    total = listmonk.subscribers_count()
+    print(f"Total subscribers: {total}")
+    page = 1
+    while True:
+        validate_emails.delay(page, 100)
+        print(f"Starting page {page}")
+        if page * 100 >= total:
+            break
+        page += 1
+    time.sleep(60)
 
 
-celery_app.conf.beat_schedule = {"start_scheduler": {"task": "start_scheduler", "schedule": 60}}
+celery_app.conf.beat_schedule = {
+    "start_scheduler": {"task": "start_scheduler", "schedule": 60}
+}

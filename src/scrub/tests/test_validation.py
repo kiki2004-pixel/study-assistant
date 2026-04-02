@@ -12,7 +12,7 @@ os.environ["POSTMARK_WEBHOOK_SECRET"] = "test"
 from main import app
 
 # Target path for mocking the DNS service within the validation logic
-MOCK_DNS_PATH = "mail_validation.services.validation_service.check_dns_records"
+MOCK_DNS_PATH = "scrub.services.validation_service.check_dns_records"
 
 
 @pytest.fixture(scope="module")
@@ -115,7 +115,7 @@ def test_bulk_does_not_fail_on_internal_error(client, monkeypatch):
     FIXED: Uses 'async def' to match the new asynchronous router/service.
     Verifies that a single failed validation doesn't crash the entire bulk run.
     """
-    import mail_validation.routers.validation_router as vr
+    import scrub.routers.validation_router as vr
 
     async def async_boom(email: str):
         if email == "explode@example.com":

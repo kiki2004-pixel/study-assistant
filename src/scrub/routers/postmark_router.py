@@ -1,7 +1,7 @@
 import json
 from fastapi import APIRouter, Request, Header, HTTPException
 from prometheus_client import Counter
-from mail_validation.settings import settings
+from scrub.settings import settings
 
 router = APIRouter()
 

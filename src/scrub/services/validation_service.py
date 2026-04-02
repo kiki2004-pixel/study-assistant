@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Dict
-from mail_validation.validators.email_syntax import validate_email_syntax
-from mail_validation.services.dns_service import check_dns_records
+from scrub.validators.email_syntax import validate_email_syntax
+from scrub.services.dns_service import check_dns_records
 
 
 async def validate_email_internal(email: str) -> Dict[str, Any]:

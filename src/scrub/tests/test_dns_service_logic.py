@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 # Core DNS exceptions
 from dns.asyncresolver import NoAnswer, NXDOMAIN
 from dns.exception import Timeout
-from mail_validation.services.dns_service import check_dns_records, _RESOLVER
+from scrub.services.dns_service import check_dns_records, _RESOLVER
 
 # No @pytest.mark.asyncio needed as asyncio_mode = auto is in pytest.ini
 

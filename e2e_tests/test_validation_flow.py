@@ -7,16 +7,16 @@ os.environ["LISTMONK_USER"] = "test"
 os.environ["LISTMONK_PASS"] = "test"
 
 from main import app
-from mail_validation.settings import settings
-from mail_validation.storage.webhook_store import WebhookStore
+from scrub.settings import settings
+from scrub.storage.webhook_store import WebhookStore
 
 # Initialise webhook schema before tests run — TestClient does not
 # trigger FastAPI lifespan, so init_schema() won't run automatically
 WebhookStore(settings.watermark_db_url).init_schema()
 
 # Mock Paths for Service and Client
-MOCK_DNS_PATH = "mail_validation.services.validation_service.check_dns_records"
-MOCK_LM_REQUEST = "mail_validation.services.listmonk_client.ListmonkClient._request"
+MOCK_DNS_PATH = "scrub.services.validation_service.check_dns_records"
+MOCK_LM_REQUEST = "scrub.services.listmonk_client.ListmonkClient._request"
 
 client = TestClient(app)
 

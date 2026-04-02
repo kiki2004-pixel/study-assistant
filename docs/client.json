@@ -1,7 +1,7 @@
 {
     "clientId": "app",
-    "name": "Mail Validation",
-    "description": "Mail Validation Service — browser SPA client",
+    "name": "Scrub",
+    "description": "Scrub — browser SPA client",
     "rootUrl": "http://localhost:5173",
     "adminUrl": "",
     "baseUrl": "http://localhost:5173",

@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, HttpUrl
 
-from mail_validation.settings import settings, block_ssrf
-from mail_validation.storage.webhook_store import WebhookStore
+from scrub.settings import settings, block_ssrf
+from scrub.storage.webhook_store import WebhookStore
 
 router = APIRouter()
 

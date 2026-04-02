@@ -62,24 +62,24 @@ jobs:
             ENV="Production"
             BUILD_ENV="prod"
             APP_URL="https://thescrub.app"
-            OIDC_REALM="mail-validation"
+            OIDC_REALM="scrub"
           elif [[ "$BRANCH" == "uat" || "$BASE" == "uat" ]]; then
             TAG="${VER}-beta"
             ENV="UAT"
             BUILD_ENV="uat"
             APP_URL="https://uat.thescrub.app"
-            OIDC_REALM="mail-validation-uat"
+            OIDC_REALM="scrub-uat"
           else
             TAG="${VER}-alpha"
             ENV="Development"
             BUILD_ENV="dev"
             APP_URL="https://dev.thescrub.app"
-            OIDC_REALM="mail-validation-dev"
+            OIDC_REALM="scrub-dev"
           fi
 
           echo "APP_VERSION=${TAG}" >> $GITHUB_OUTPUT
-          echo "API_IMAGE=ghcr.io/nerd-zero/mail-validation:${TAG}" >> $GITHUB_OUTPUT
-          echo "WEB_IMAGE=ghcr.io/nerd-zero/mail-validation-web:${TAG}" >> $GITHUB_OUTPUT
+          echo "API_IMAGE=ghcr.io/nerd-zero/scrub:${TAG}" >> $GITHUB_OUTPUT
+          echo "WEB_IMAGE=ghcr.io/nerd-zero/scrub-web:${TAG}" >> $GITHUB_OUTPUT
           echo "ENVIRONMENT=${ENV}" >> $GITHUB_OUTPUT
           echo "BUILD_ENV=${BUILD_ENV}" >> $GITHUB_OUTPUT
           echo "DEPLOY_URL=${APP_URL}" >> $GITHUB_OUTPUT

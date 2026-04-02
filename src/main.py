@@ -3,11 +3,11 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from mail_validation.routers.validation_router import router as validation_router
-from mail_validation.routers.listmonk_router import router as listmonk_router
-from mail_validation.routers.webhook_router import router as webhook_router
-from mail_validation.storage.webhook_store import WebhookStore
-from mail_validation.settings import settings
+from scrub.routers.validation_router import router as validation_router
+from scrub.routers.listmonk_router import router as listmonk_router
+from scrub.routers.webhook_router import router as webhook_router
+from scrub.storage.webhook_store import WebhookStore
+from scrub.settings import settings
 from prometheus_fastapi_instrumentator import Instrumentator
 
 
