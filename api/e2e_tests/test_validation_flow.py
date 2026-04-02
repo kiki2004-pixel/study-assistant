@@ -1,10 +1,13 @@
 import os
+from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 
 # 1. Setup Environment for Settings initialization
 os.environ["LISTMONK_URL"] = "http://mock-listmonk"
 os.environ["LISTMONK_USER"] = "test"
 os.environ["LISTMONK_PASS"] = "test"
+os.environ["API_KEY"] = "test-api-key"
+os.environ["SSRF_PROTECTION_ENABLED"] = "false"
 
 from main import app
 from scrub.settings import settings
@@ -19,9 +22,12 @@ MOCK_DNS_PATH = "scrub.services.validation_service.check_dns_records"
 MOCK_LM_REQUEST = "scrub.services.listmonk_client.ListmonkClient._request"
 
 client = TestClient(app)
+API_HEADERS = {"X-API-Key": "test-api-key"}
 
+
+# ---------------------------------------------------------------------------
 # 1. API & DNS Logic Tests
-
+# ---------------------------------------------------------------------------
 
 def test_validate_single_success_e2e(mocker):
     """Verifies: API -> DNS Service -> Deliverable status."""
@@ -64,8 +70,9 @@ def test_validate_bulk_summary_e2e(mocker):
     assert response.json()["summary"]["total"] == 2
 
 
+# ---------------------------------------------------------------------------
 # 2. Listmonk Automation Tests
-
+# ---------------------------------------------------------------------------
 
 def test_metrics_endpoint_active():
     """Ensures Prometheus metrics are exposed for monitoring."""
