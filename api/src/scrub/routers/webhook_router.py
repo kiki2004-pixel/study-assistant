@@ -1,8 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, HttpUrl
 
+<<<<<<<< HEAD:api/src/scrub/routers/webhook_router.py
 from mail_validation.settings import settings
 from mail_validation.storage.webhook_store import WebhookStore
+========
+from scrub.settings import settings, block_ssrf
+from scrub.storage.webhook_store import WebhookStore
+>>>>>>>> 15060365 (rebrand mail-validation to scrub across backend, web, and CI):src/scrub/routers/webhook_router.py
 
 router = APIRouter()
 

@@ -1,15 +1,12 @@
 {
   "name": "scrub-web",
-  "description": "email validation service",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc",
-    "lint": "eslint --fix . && prettier --write .",
-    "format": "prettier --write ."
+    "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.34.0",
@@ -29,11 +26,7 @@
     "@types/node": "^22",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "@typescript-eslint/parser": "^8.58.2",
-    "eslint": "^10.2.0",
-    "eslint-plugin-unused-imports": "^4.4.1",
-    "prettier": "3.8.2",
-    "typescript": "^6.0.2",
+    "typescript": "^5.9.2",
     "vite": "^7.1.7",
     "vite-tsconfig-paths": "^5.1.4"
   }
