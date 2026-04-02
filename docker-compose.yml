@@ -1,8 +1,7 @@
 services:
   scrub:
-    build: api
-    env_file:
-      - api/.env
+    build: .
+
     ports:
       - "3000:3000"
     environment:
@@ -60,7 +59,7 @@ services:
         "-m",
         "celery",
         "-A",
-        "mail_validation.jobs.celery_app",
+        "scrub.jobs.celery_app",
         "worker",
         "--loglevel=info",
       ]

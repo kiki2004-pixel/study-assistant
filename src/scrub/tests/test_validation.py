@@ -132,5 +132,7 @@ def test_bulk_does_not_fail_on_internal_error(client, monkeypatch):
     }
     r = client.post("/validation/validate-bulk", json=payload)
     assert r.status_code == 200
-    # Expected: 1 error (explode@example.com) and 1 success (ok@example.com)
-    assert r.json()["summary"]["errors"] == 1
+
+    data = r.json()
+    assert data["summary"]["errors"] == 1
+    assert any(x["status"] == "error" for x in data["results"])

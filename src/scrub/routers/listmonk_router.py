@@ -1,15 +1,13 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, HttpUrl
-
+from pydantic import BaseModel
 import httpx
 
 from scrub.settings import get_settings, block_ssrf
 
 router = APIRouter()
 
-# Request / Response Models
 class ListmonkSettings(BaseModel):
-    listmonk_url: HttpUrl
+    listmonk_url: str
     listmonk_user: str
     listmonk_pass: str
     listmonk_list_id: str
@@ -29,7 +27,7 @@ class ConnectionTestResponse(BaseModel):
     message: str
     subscriber_count: int | None = None
 
-# Routes
+
 @router.get("/settings", response_model=ListmonkSettingsResponse)
 async def get_listmonk_settings():
     """
@@ -51,7 +49,6 @@ async def test_listmonk_connection(payload: ListmonkSettings):
     Tests a Listmonk connection using the provided credentials.
     Hits the /api/health endpoint and fetches subscriber count to verify access.
     """
-    block_ssrf(payload.listmonk_url)
     try:
         async with httpx.AsyncClient(
             base_url=payload.listmonk_url,

@@ -1,5 +1,5 @@
 
-# Mail-Validator
+# Scrub
 FastAPI service that performs syntax + DNS MX email validation and can automate Listmonk list hygiene.
 
 ## What it does
@@ -7,14 +7,28 @@ FastAPI service that performs syntax + DNS MX email validation and can automate 
 - Optionally runs a Listmonk job that fetches new subscribers, validates with the same syntax + DNS MX pipeline, and unsubscribes invalid emails.
 - Uses a watermark (created_at + id) so each Listmonk run only processes new subscribers.
 
-## Setup
-
-
-```bash
-cp .env.example .env
-cp api/.env.example api/.env
-cp web/.env.example web/.env
-make run
+## Project structure
+```
+scrub/
+├── src/
+│   └── scrub/
+│       ├── routers/          # FastAPI route handlers
+│       ├── services/         # Validation, DNS, Listmonk logic
+│       ├── models/           # Pydantic request/response models
+│       ├── validators/       # Email syntax validation
+│       ├── jobs/             # Celery tasks
+│       ├── storage/          # Watermark store (Postgres)
+│       ├── utils/            # Listmonk API client
+│       └── tests/
+├── web/                      # React Router SPA (Bun + Vite)
+│   └── app/
+│       ├── routes/           # home, dashboard, auth.callback
+│       └── components/       # Navbar, Footer
+├── alembic/                  # DB migrations
+├── e2e_tests/                # End-to-end tests
+├── docs/                     # Keycloak client config
+├── docker-compose.yml
+└── prometheus.yml
 ```
 
 ## Commands
@@ -70,8 +84,115 @@ python -m mail_validation.jobs.listmonk_validator
 
 ```
 
-## Zitadel
+Start a worker:
+```
+PYTHONPATH=src \
+LISTMONK_URL=http://localhost:9000 \
+LISTMONK_USER=your_user \
+LISTMONK_PASS=your_password \
+uv run celery -A scrub.jobs.celery_app worker --loglevel=info
+```
 
-1. `make zitadel` then open http://localhost:8080 (`zitadel-admin@zitadel.localhost` / `Password1!`)
-2. Create a project → User Agent app → enable PKCE → redirect URI `http://localhost:5173/auth/callback`
-3. Copy the client ID into `VITE_OIDC_CLIENT_ID` in `web/.env`
+The scheduler runs automatically every `VALIDATION_POLL_INTERVAL_SECONDS` seconds via Celery beat. To trigger it manually, call `GET /validation/trigger` or:
+```
+PYTHONPATH=src uv run celery -A scrub.jobs.celery_app call start_scheduler
+```
+
+## Local development
+### Run the API
+```
+uv run fastapi dev --reload --port 3000 src/main.py
+```
+
+### Local Listmonk (for integration testing)
+This repo includes a Listmonk + Postgres setup in `docker-compose.yml`.
+
+1) Add to `.env`
+```
+LISTMONK_ADMIN_USER=admin
+LISTMONK_ADMIN_PASSWORD=admin123
+LISTMONK_URL=http://localhost:9000
+LISTMONK_USER=admin
+LISTMONK_PASS=admin123
+```
+
+2) Start services
+```
+docker compose up -d listmonk_db listmonk_app
+```
+
+3) Initialize & create a list
+- Open http://localhost:9000 and log in with LISTMONK_ADMIN_USER / LISTMONK_ADMIN_PASSWORD
+- Create a list and note its ID
+- Update LISTMONK_LIST_ID if needed
+
+4) Start the Celery worker and kick off the scheduler as described above
+
+## Web UI
+
+### Keycloak setup
+The web app uses OIDC via Keycloak. Import the client config before running the UI.
+
+1. Start Keycloak:
+```
+docker compose up -d keycloak
+```
+
+2. Open http://localhost:8080 and log in (admin / admin)
+
+3. Select your realm, go to **Clients** -> **Import client**, and upload `docs/client.json`
+
+### Running locally
+1. Copy the env file:
+```
+cp web/.env.example web/.env
+```
+
+Configure the following variables in `web/.env`:
+```
+VITE_OIDC_AUTHORITY=http://localhost:8080/realms/master
+VITE_OIDC_CLIENT_ID=app
+VITE_OIDC_REDIRECT_URI=http://localhost:5173/auth/callback
+VITE_OIDC_POST_LOGOUT_REDIRECT_URI=http://localhost:5173
+```
+
+2. Install dependencies:
+```
+cd web && bun install
+```
+
+3. Start the dev server:
+```
+bun run dev
+```
+
+The app will be available at http://localhost:5173.
+
+### Running with Docker
+```
+docker build -t scrub-web web/
+docker run -p 5173:80 scrub-web
+```
+
+## Observability
+The stack includes Prometheus and Grafana for metrics.
+
+- Prometheus scrapes `GET /metrics` and is available at http://localhost:9090
+- Grafana is available at http://localhost:3001
+
+Start both services:
+```
+docker compose up -d prometheus grafana
+```
+
+Configure Grafana credentials via env vars:
+```
+GF_SECURITY_ADMIN_USER=admin
+GF_SECURITY_ADMIN_PASSWORD=yourpassword
+```
+
+## Migrations
+Alembic manages the watermark schema. Set `WATERMARK_DB_URL` and run:
+```
+alembic upgrade head
+```

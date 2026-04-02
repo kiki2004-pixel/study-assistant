@@ -3,7 +3,8 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "web",
+      "name": "scrub-web",
+
       "dependencies": {
         "@chakra-ui/react": "^3.34.0",
         "@emotion/react": "^11.14.0",

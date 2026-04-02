@@ -37,4 +37,5 @@ async def validate_email_internal(email: str) -> Dict[str, Any]:
         "status": "deliverable" if dns_result["is_valid"] else "undeliverable",
         "reason": dns_result["reason"],
         "details": details,
+
     }

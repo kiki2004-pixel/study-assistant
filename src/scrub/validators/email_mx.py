@@ -71,4 +71,5 @@ def validate_email_mx(domain: str) -> EmailMxResult:
     if not records:
         return EmailMxResult(ok=False, status="undeliverable", reason="mx_not_found", message="No MX records found.")
 
+
     return EmailMxResult(ok=True, status="deliverable", records=records)
