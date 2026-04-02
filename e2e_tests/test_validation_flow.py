@@ -1,4 +1,5 @@
 import os
+import tempfile
 from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
 
@@ -8,6 +9,11 @@ os.environ["LISTMONK_USER"] = "test"
 os.environ["LISTMONK_PASS"] = "test"
 os.environ["API_KEY"] = "test-api-key"
 os.environ["SSRF_PROTECTION_ENABLED"] = "false"
+
+# Use a temp DB for tests — keeps test data isolated and avoids
+# polluting the real local watermarks.db
+_tmp_db = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+os.environ["WATERMARK_DB_URL"] = f"sqlite:///{_tmp_db.name}"
 
 from main import app
 from mail_validation.settings import settings

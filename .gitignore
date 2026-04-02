@@ -16,5 +16,10 @@ celerybeat*
 # Web
 web/node_modules/
 web/build/
+<<<<<<< HEAD
 web/.react-router/
 .chief/
+=======
+web/.react-router/watermarks.db
+watermarks.db
+>>>>>>> a814b1f (fix(tests): move pytest-mock to dev deps, use temp DB in tests, add watermarks.db to gitignore)
