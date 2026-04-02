@@ -24,9 +24,9 @@ from scrub.storage.webhook_store import WebhookStore  # noqa: E402
 WebhookStore(settings.watermark_db_url).init_schema()
 
 # Mock Paths for Service and Client
-MOCK_DNS_PATH = "mail_validation.services.validation_service.check_dns_records"
-MOCK_LM_REQUEST = "mail_validation.services.listmonk_client.ListmonkClient._request"
-MOCK_DISPATCH = "mail_validation.routers.validation_router.dispatch_webhook"
+MOCK_DNS_PATH = "scrub.services.validation_service.check_dns_records"
+MOCK_LM_REQUEST = "scrub.services.listmonk_client.ListmonkClient._request"
+MOCK_DISPATCH = "scrub.routers.validation_router.dispatch_webhook"
 
 client = TestClient(app)
 API_HEADERS = {"X-API-Key": "test-api-key"}
