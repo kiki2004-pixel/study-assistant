@@ -15,9 +15,9 @@ os.environ["SSRF_PROTECTION_ENABLED"] = "false"
 _tmp_db = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
 os.environ["WATERMARK_DB_URL"] = f"sqlite:///{_tmp_db.name}"
 
-from main import app
-from mail_validation.settings import settings
-from mail_validation.storage.webhook_store import WebhookStore
+from main import app  # noqa: E402
+from scrub.settings import settings  # noqa: E402
+from scrub.storage.webhook_store import WebhookStore  # noqa: E402
 
 # Initialise webhook schema before tests run — TestClient does not
 # trigger FastAPI lifespan, so init_schema() won't run automatically
