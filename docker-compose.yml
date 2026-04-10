@@ -1,6 +1,8 @@
 services:
   scrub:
-    build: .
+    build: api
+    env_file:
+      - api/.env
     ports:
       - "3000:3000"
     environment:
@@ -30,7 +32,9 @@ services:
     restart: unless-stopped
 
   celery-worker:
-    build: .
+    build: api
+    env_file:
+      - api/.env
     depends_on:
       - redis
       - listmonk_app
@@ -63,43 +67,48 @@ services:
 
     restart: unless-stopped
 
-  keycloak:
-    container_name: keycloak
-    image: ghcr.io/nerd-zero/auth:2025.07.002-alpha
+  zitadel:
+    image: ghcr.io/zitadel/zitadel:latest
+    container_name: zitadel
+    command: start-from-init --masterkey "MasterkeyNeedsToHave32Characters" --tlsMode disabled
     restart: unless-stopped
-    command: start-dev
     environment:
-      KC_DB: postgres
-      KC_DB_URL_HOST: keycloak-db
-      KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: password
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_HOSTNAME: localhost
-      KC_HOSTNAME_PORT: 8080
+      ZITADEL_DATABASE_POSTGRES_HOST: zitadel-db
+      ZITADEL_DATABASE_POSTGRES_PORT: 5432
+      ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
+      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: postgres
+      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: postgres
+      ZITADEL_EXTERNALSECURE: "false"
+      ZITADEL_EXTERNALPORT: 8080
+      ZITADEL_EXTERNALDOMAIN: localhost
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: zitadel-admin@zitadel.localhost
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: Password1!
     ports:
       - "8080:8080"
     depends_on:
-      keycloak-db:
+      zitadel-db:
         condition: service_healthy
 
-  keycloak-db:
-    container_name: keycloak-db
-    image: docker.io/postgres:17
+  zitadel-db:
+    container_name: zitadel-db
+    image: postgres:17
     restart: unless-stopped
     expose:
       - 5432
     environment:
-      POSTGRES_DB: keycloak
-      POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: zitadel
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 6
     volumes:
-      - keycloak-db:/var/lib/postgresql/data
+      - zitadel-db:/var/lib/postgresql/data
 
   prometheus:
     image: prom/prometheus:latest
@@ -205,4 +214,4 @@ services:
       - ./data/listmonk/db:/var/lib/postgresql/data
 
 volumes:
-  keycloak-db:
+  zitadel-db:

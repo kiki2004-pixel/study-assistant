@@ -9,7 +9,7 @@
 # ── Full stack ────────────────────────────────────────────────────────────────
 
 run:
-	$(MAKE) deps
+	docker compose up -d
 	$(MAKE) -j2 api-dev web-dev
 
 stop:
@@ -41,11 +41,7 @@ zitadel:
 # ── Local dev servers (outside Docker) ───────────────────────────────────────
 
 api-dev:
-	cd api && SCRUB_DB_URL=postgresql+psycopg2://scrub:scrub@localhost:5433/scrub \
-		CELERY_BROKER_URL=redis://localhost:6379/0 \
-		CELERY_RESULT_BACKEND=redis://localhost:6379/0 \
-		LISTMONK_URL=http://localhost:9000 \
-		uv run fastapi dev src/main.py --reload --port 3000
+	cd api && uv run fastapi dev src/main.py --reload --port 3000
 
 web-dev:
 	cd web && bun run dev
@@ -71,8 +67,7 @@ test-web:
 # ── Linting & type checking ───────────────────────────────────────────────────
 
 lint:
-	cd api && uv run ruff format src
-	cd web && bun run format
+	cd api && uv run ruff check src
 
 typecheck:
 	cd web && bun run typecheck
