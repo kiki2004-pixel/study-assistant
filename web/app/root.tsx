@@ -9,22 +9,9 @@ import {
 import { ChakraProvider } from "@chakra-ui/react";
 import { AuthProvider } from "react-oidc-context";
 import { system } from "./theme";
+import { oidcConfig } from "@lib/auth";
 
 import type { Route } from "./+types/root";
-
-const oidcConfig = {
-  authority:
-    import.meta.env.VITE_OIDC_AUTHORITY ||
-    "http://localhost:8080/realms/master",
-  client_id: import.meta.env.VITE_OIDC_CLIENT_ID || "app",
-  redirect_uri:
-    import.meta.env.VITE_OIDC_REDIRECT_URI ||
-    "http://localhost:5173/auth/callback",
-  post_logout_redirect_uri:
-    import.meta.env.VITE_OIDC_POST_LOGOUT_REDIRECT_URI ||
-    "http://localhost:5173",
-  scope: "openid profile email",
-};
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (

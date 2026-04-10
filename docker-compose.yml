@@ -64,7 +64,7 @@ services:
     restart: unless-stopped
 
   zitadel:
-    image: ghcr.io/zitadel/zitadel:latest
+    image: ghcr.io/zitadel/zitadel:v2.63.5
     container_name: zitadel
     command: start-from-init --masterkey "MasterkeyNeedsToHave32Characters" --tlsMode disabled
     restart: unless-stopped
@@ -77,6 +77,7 @@ services:
       ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
       ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: postgres
       ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: postgres
+      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
       ZITADEL_EXTERNALSECURE: "false"
       ZITADEL_EXTERNALPORT: 8080
       ZITADEL_EXTERNALDOMAIN: localhost
