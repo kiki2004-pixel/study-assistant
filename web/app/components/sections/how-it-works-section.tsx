@@ -10,9 +10,10 @@ export function HowItWorksSection() {
       borderColor="border"
     >
       <Heading
+        fontFamily="heading"
+        fontWeight="400"
         fontSize={{ base: "3xl", md: "4xl" }}
-        fontWeight="black"
-        letterSpacing="-0.02em"
+        letterSpacing="-0.03em"
       >
         How it Works
       </Heading>

@@ -5,13 +5,19 @@ const customConfig = defineConfig({
     body: {
       bg: "bg",
       color: "fg",
+      fontFamily: "body",
     },
   },
   theme: {
     tokens: {
+      fonts: {
+        heading: { value: "'Instrument Serif', Georgia, serif" },
+        body: { value: "'DM Sans', system-ui, sans-serif" },
+        mono: { value: "'Geist Mono', 'Courier New', monospace" },
+      },
       colors: {
         brand: {
-          50:  { value: "#F0FDF4" },
+          50: { value: "#F0FDF4" },
           100: { value: "#DCFCE7" },
           200: { value: "#BBF7D0" },
           300: { value: "#86EFAC" },
@@ -23,7 +29,7 @@ const customConfig = defineConfig({
           900: { value: "#14532D" },
         },
         accent: {
-          50:  { value: "#FFFDE7" },
+          50: { value: "#FFFDE7" },
           100: { value: "#FFF9C4" },
           200: { value: "#FFF176" },
           300: { value: "#FFE835" },

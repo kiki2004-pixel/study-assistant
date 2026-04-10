@@ -23,7 +23,14 @@ export function CtaSection() {
 
       <Container maxW="3xl" position="relative" zIndex={1}>
         <Flex direction="column" align="center" textAlign="center" gap={6}>
-          <Heading fontSize={{ base: "3xl", md: "5xl" }} color="brand.contrast">
+          <Heading
+            fontFamily="heading"
+            fontWeight="400"
+            fontSize={{ base: "3xl", md: "5xl" }}
+            letterSpacing="-0.03em"
+            lineHeight={1.05}
+            color="brand.contrast"
+          >
             Ready to clean your list?
           </Heading>
 

@@ -59,9 +59,11 @@ export function PricingSection() {
           mb={12}
         >
           <Heading
+            fontFamily="heading"
+            fontWeight="400"
             fontSize={{ base: "3xl", md: "5xl" }}
             letterSpacing="-0.03em"
-            lineHeight={1.1}
+            lineHeight={1.05}
           >
             Simple, transparent pricing
           </Heading>

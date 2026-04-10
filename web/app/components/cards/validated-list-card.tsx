@@ -59,7 +59,12 @@ export function ValidatedListCard() {
                 bg={i % 2 === 0 ? "bg" : "transparent"}
               >
                 <Flex align="center" gap={2.5} flex={1} minW={0}>
-                  <Icon as={FiMail} boxSize={3.5} color="fg.muted" flexShrink={0} />
+                  <Icon
+                    as={FiMail}
+                    boxSize={3.5}
+                    color="fg.muted"
+                    flexShrink={0}
+                  />
                   <Text fontSize="xs" fontFamily="mono" color="fg" truncate>
                     {row.email}
                   </Text>

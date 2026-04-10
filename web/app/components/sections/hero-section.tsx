@@ -1,4 +1,12 @@
-import { Box, Button, Container, Flex, Heading, Icon, Text } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Container,
+  Flex,
+  Heading,
+  Icon,
+  Text,
+} from "@chakra-ui/react";
 import {
   FiArrowRight,
   FiCalendar,
@@ -43,7 +51,14 @@ function FloatingCard({
         p={3}
         shadow="sm"
       >
-        <Flex align="center" justify="center" w={10} h={10} borderRadius="xl" bg={iconBg}>
+        <Flex
+          align="center"
+          justify="center"
+          w={10}
+          h={10}
+          borderRadius="xl"
+          bg={iconBg}
+        >
           <Icon as={icon} boxSize={5} color={iconColor} />
         </Flex>
       </Box>
@@ -59,21 +74,48 @@ export function HeroSection() {
         position="absolute"
         inset={0}
         style={{
-          backgroundImage: "radial-gradient(circle, #C0C0BA 1.5px, transparent 1.5px)",
+          backgroundImage:
+            "radial-gradient(circle, #C0C0BA 1.5px, transparent 1.5px)",
           backgroundSize: "40px 40px",
         }}
         opacity={0.55}
       />
 
       {/* Floating icon cards */}
-      <FloatingCard icon={FiMail}         iconBg="red.100"    iconColor="red.400"    top="14%" left="7%" />
-      <FloatingCard icon={FiCalendar}     iconBg="blue.100"   iconColor="blue.500"   top="14%" right="7%" />
-      <FloatingCard icon={FiMessageSquare} iconBg="purple.100" iconColor="purple.500" top="50%" left="4%" transform="translateY(-50%)" />
-      <FloatingCard icon={FiFileText}     iconBg="brand.100"  iconColor="brand.600"  top="50%" right="4%" transform="translateY(-50%)" />
+      <FloatingCard
+        icon={FiMail}
+        iconBg="red.100"
+        iconColor="red.400"
+        top="14%"
+        left="7%"
+      />
+      <FloatingCard
+        icon={FiCalendar}
+        iconBg="blue.100"
+        iconColor="blue.500"
+        top="14%"
+        right="7%"
+      />
+      <FloatingCard
+        icon={FiMessageSquare}
+        iconBg="purple.100"
+        iconColor="purple.500"
+        top="50%"
+        left="4%"
+        transform="translateY(-50%)"
+      />
+      <FloatingCard
+        icon={FiFileText}
+        iconBg="brand.100"
+        iconColor="brand.600"
+        top="50%"
+        right="4%"
+        transform="translateY(-50%)"
+      />
 
       {/* Centre content */}
       <Container maxW="3xl" textAlign="center" position="relative" zIndex={2}>
-        {/* Badge */}
+        {/*{/* Badge */}
         <Flex justify="center" mb={6}>
           <Flex
             align="center"
@@ -87,26 +129,37 @@ export function HeroSection() {
             shadow="sm"
           >
             <Icon as={FiShield} boxSize={3.5} color="fg.muted" />
-            <Text fontSize="xs" fontWeight="medium" color="fg.muted" letterSpacing="0.01em">
-              Email Validation & List Cleaning
+            <Text
+              fontSize="xs"
+              fontWeight="medium"
+              color="fg.muted"
+              letterSpacing="0.01em"
+            >
+              email validation & list cleaning
             </Text>
           </Flex>
         </Flex>
-
         <Heading
+          fontFamily="heading"
+          fontWeight="400"
           fontSize={{ base: "3xl", md: "5xl", lg: "6xl" }}
-          lineHeight={1.1}
+          lineHeight={1.05}
           letterSpacing="-0.03em"
           mb={6}
         >
           Remove invalid emails, block fake users and bots
         </Heading>
-
-        <Text color="fg.muted" fontSize={{ base: "md", md: "lg" }} mb={10} maxW="xl" mx="auto">
-          Validate email lists, protect your sender reputation, prevent fraud, and save money on
-          every campaign. Scrub keeps your deliverability high.
+        <Text
+          color="fg.muted"
+          fontSize={{ base: "md", md: "lg" }}
+          mb={10}
+          maxW="xl"
+          mx="auto"
+        >
+          Validate email lists, protect your sender reputation, prevent fraud,
+          and save money on every campaign. Scrub keeps your deliverability
+          high.
         </Text>
-
         <Flex justify="center">
           <Button
             size="lg"

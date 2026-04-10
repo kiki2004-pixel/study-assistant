@@ -1,3 +1,11 @@
+## Design System
+Always read `DESIGN.md` (repo root) before making any visual or UI decisions.
+All font choices (Instrument Serif / DM Sans / Geist Mono), colors, spacing, border radius, and aesthetic direction are defined there.
+Do not deviate without explicit user approval.
+In QA mode, flag any code that doesn't match `DESIGN.md`.
+
+---
+
 ## Workflow Orchestration
 
 ### 1. Plan Node Default
