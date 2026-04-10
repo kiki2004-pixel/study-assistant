@@ -1,0 +1,236 @@
+name: Build and deploy
+
+on:
+  push:
+    branches:
+      - main
+      - prod
+    paths:
+      - "api/**"
+      - "web/**"
+      - "VERSIONS"
+      - ".github/workflows/build.yml"
+  workflow_dispatch:
+    inputs:
+      component:
+        description: "Component to build (api, web, or both)"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - api
+          - web
+          - both
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  # -----------------------------------------------------------------------
+  # Detect what this run should do:
+  #   do_bump  — main, not bot, api/ or web/ code changed
+  #   do_build — main + VERSIONS changed (bot bump commit), or prod + code changed, or workflow_dispatch
+  # -----------------------------------------------------------------------
+  detect:
+    runs-on: ubuntu-24.04
+    outputs:
+      do_bump: ${{ steps.out.outputs.do_bump }}
+      do_build: ${{ steps.out.outputs.do_build }}
+      api_changed: ${{ steps.out.outputs.api_changed }}
+      web_changed: ${{ steps.out.outputs.web_changed }}
+      api_tag: ${{ steps.out.outputs.api_tag }}
+      web_tag: ${{ steps.out.outputs.web_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Compute outputs
+        id: out
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          ACTOR="${{ github.actor }}"
+          EVENT="${{ github.event_name }}"
+
+          do_bump=false
+          do_build=false
+          api_changed=false
+          web_changed=false
+
+          if [[ "$EVENT" == "workflow_dispatch" ]]; then
+            INPUT="${{ inputs.component }}"
+            do_build=true
+            [[ "$INPUT" == "api" || "$INPUT" == "both" ]] && api_changed=true
+            [[ "$INPUT" == "web" || "$INPUT" == "both" ]] && web_changed=true
+          else
+            BASE="${{ github.event.before }}"
+            HEAD="${{ github.sha }}"
+            if [[ -z "$BASE" || "$BASE" == "0000000000000000000000000000000000000000" ]]; then
+              BASE="$(git rev-list --max-parents=0 "$HEAD")"
+            fi
+            CHANGED=$(git diff --name-only "$BASE" "$HEAD")
+
+            CODE_API=$(echo "$CHANGED" | grep -q '^api/' && echo true || echo false)
+            CODE_WEB=$(echo "$CHANGED" | grep -q '^web/' && echo true || echo false)
+            VERSIONS_CHANGED=$(echo "$CHANGED" | grep -q '^VERSIONS$' && echo true || echo false)
+
+            if [[ "$BRANCH" == "main" && "$ACTOR" != "scrub-bot[bot]" ]]; then
+              # Human push to main with code changes — bump only, build will follow
+              if [[ "$CODE_API" == "true" || "$CODE_WEB" == "true" ]]; then
+                do_bump=true
+              fi
+            elif [[ "$BRANCH" == "main" && "$ACTOR" == "scrub-bot[bot]" && "$VERSIONS_CHANGED" == "true" ]]; then
+              # Bot bump commit — build the components whose versions changed
+              do_build=true
+              VDIFF=$(git diff HEAD~1 HEAD -- VERSIONS)
+              echo "$VDIFF" | grep -q '^+api=' && api_changed=true
+              echo "$VDIFF" | grep -q '^+web=' && web_changed=true
+            elif [[ "$BRANCH" == "prod" ]]; then
+              # Prod push — build directly from VERSIONS, no bump
+              if [[ "$CODE_API" == "true" || "$CODE_WEB" == "true" ]]; then
+                do_build=true
+                api_changed=$CODE_API
+                web_changed=$CODE_WEB
+              fi
+            fi
+          fi
+
+          # Compute image tags
+          API_VERSION=$(grep '^api=' VERSIONS | cut -d= -f2)
+          WEB_VERSION=$(grep '^web=' VERSIONS | cut -d= -f2)
+
+          if [[ "$BRANCH" == "main" ]]; then
+            api_tag="${API_VERSION}-alpha"
+            web_tag="${WEB_VERSION}-alpha"
+          else
+            api_tag="${API_VERSION}"
+            web_tag="${WEB_VERSION}"
+          fi
+
+          echo "do_bump=${do_bump}"       >> "$GITHUB_OUTPUT"
+          echo "do_build=${do_build}"     >> "$GITHUB_OUTPUT"
+          echo "api_changed=${api_changed}" >> "$GITHUB_OUTPUT"
+          echo "web_changed=${web_changed}" >> "$GITHUB_OUTPUT"
+          echo "api_tag=${api_tag}"       >> "$GITHUB_OUTPUT"
+          echo "web_tag=${web_tag}"       >> "$GITHUB_OUTPUT"
+
+  # -----------------------------------------------------------------------
+  # Bump — runs only on human pushes to main with code changes
+  # Commits updated VERSIONS, which triggers a second run for the build
+  # -----------------------------------------------------------------------
+  bump:
+    needs: detect
+    if: needs.detect.outputs.do_bump == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Configure git
+        run: |
+          git config user.name "scrub-bot[bot]"
+          git config user.email "scrub-bot[bot]@users.noreply.github.com"
+
+      - name: Detect changed components
+        id: changes
+        run: |
+          BASE="${{ github.event.before }}"
+          HEAD="${{ github.sha }}"
+          if [[ -z "$BASE" || "$BASE" == "0000000000000000000000000000000000000000" ]]; then
+            BASE="$(git rev-list --max-parents=0 "$HEAD")"
+          fi
+          CHANGED=$(git diff --name-only "$BASE" "$HEAD")
+          echo "$CHANGED" | grep -q '^api/' && echo "api_changed=true" >> "$GITHUB_OUTPUT" || echo "api_changed=false" >> "$GITHUB_OUTPUT"
+          echo "$CHANGED" | grep -q '^web/' && echo "web_changed=true" >> "$GITHUB_OUTPUT" || echo "web_changed=false" >> "$GITHUB_OUTPUT"
+
+      - name: Bump versions
+        run: |
+          chmod +x .github/scripts/bump-version.sh
+          [[ "${{ steps.changes.outputs.api_changed }}" == "true" ]] && .github/scripts/bump-version.sh api
+          [[ "${{ steps.changes.outputs.web_changed }}" == "true" ]] && .github/scripts/bump-version.sh web
+
+      - name: Commit and push
+        run: |
+          git add VERSIONS
+          git commit -m "chore(release): bump versions"
+          git push origin main
+
+  # -----------------------------------------------------------------------
+  # Build API — runs after bump commit (main) or on prod code push
+  # -----------------------------------------------------------------------
+  build-api:
+    needs: detect
+    if: needs.detect.outputs.do_build == 'true' && needs.detect.outputs.api_changed == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: api/
+          push: true
+          tags: ghcr.io/nerd-zero/scrub-api:${{ needs.detect.outputs.api_tag }}
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
+            APP_VERSION=${{ needs.detect.outputs.api_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # -----------------------------------------------------------------------
+  # Build web — runs after bump commit (main) or on prod code push
+  # -----------------------------------------------------------------------
+  build-web:
+    needs: detect
+    if: needs.detect.outputs.do_build == 'true' && needs.detect.outputs.web_changed == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: web/
+          push: true
+          tags: ghcr.io/nerd-zero/scrub:${{ needs.detect.outputs.web_tag }}
+          build-args: |
+            VITE_OIDC_AUTHORITY=${{ secrets.VITE_OIDC_AUTHORITY }}
+            VITE_OIDC_CLIENT_ID=${{ secrets.VITE_OIDC_CLIENT_ID }}
+            VITE_OIDC_REDIRECT_URI=${{ secrets.VITE_OIDC_REDIRECT_URI }}
+            VITE_OIDC_POST_LOGOUT_REDIRECT_URI=${{ secrets.VITE_OIDC_POST_LOGOUT_REDIRECT_URI }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
