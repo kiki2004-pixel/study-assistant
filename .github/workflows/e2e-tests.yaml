@@ -22,7 +22,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           # Editable install
-          pip install -e .
+          pip install -e server/
           # Testing tools
           pip install pytest pytest-asyncio pytest-mock respx httpx
 
@@ -33,4 +33,4 @@ jobs:
           LISTMONK_PASS: "test_key"
           POSTMARK_WEBHOOK_SECRET: "test_secret"
         run: |
-          pytest e2e_tests/test_validation_flow.py
+          pytest server/e2e_tests/test_validation_flow.py
