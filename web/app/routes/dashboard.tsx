@@ -1,17 +1,9 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "react-oidc-context";
-import {
-  Box,
-  Container,
-  Grid,
-  Heading,
-  Text,
-  Icon,
-} from "@chakra-ui/react";
+import { Box, Container, Grid, Heading, Text, Icon } from "@chakra-ui/react";
 import { FiCheckCircle, FiMail, FiZap, FiList } from "react-icons/fi";
-import { AuthenticatedNavbar } from "~/components/navbar/AuthenticatedNavbar";
-
+import { AuthenticatedNavbar } from "@app/components/navbar/authenticated-navbar";
 
 interface StatCardProps {
   icon: React.ElementType;
@@ -50,7 +42,6 @@ function StatCard({ icon, label, value }: StatCardProps) {
   );
 }
 
-
 export default function Dashboard() {
   const auth = useAuth();
   const navigate = useNavigate();
@@ -71,14 +62,27 @@ export default function Dashboard() {
 
       <Container maxW="6xl" py={10}>
         <Box mb={8}>
-          <Heading fontSize={{ base: "2xl", md: "3xl" }} fontWeight="bold" mb={1}>
-            Welcome back{auth.user?.profile.given_name ? `, ${auth.user.profile.given_name}` : ""}
+          <Heading
+            fontSize={{ base: "2xl", md: "3xl" }}
+            fontWeight="bold"
+            mb={1}
+          >
+            Welcome back
+            {auth.user?.profile.given_name
+              ? `, ${auth.user.profile.given_name}`
+              : ""}
           </Heading>
-          <Text color="fg.muted">Here's an overview of your email scrubbing activity.</Text>
+          <Text color="fg.muted">
+            Here's an overview of your email scrubbing activity.
+          </Text>
         </Box>
 
         <Grid
-          templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }}
+          templateColumns={{
+            base: "1fr",
+            sm: "repeat(2, 1fr)",
+            md: "repeat(4, 1fr)",
+          }}
           gap={6}
           mb={10}
         >
