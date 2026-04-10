@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     # API Key
     api_key: str = ""
 
+    # Zitadel Auth
+    zitadel_domain: str = "http://localhost:8080"
+
     # Listmonk Integration
     listmonk_url: str = "http://localhost:9000"
     listmonk_user: str = ""

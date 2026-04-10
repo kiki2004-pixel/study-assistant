@@ -1,9 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "react-oidc-context";
+import { getMe } from "api/user";
 import { Box, Container, Grid, Heading, Text, Icon } from "@chakra-ui/react";
 import { FiCheckCircle, FiMail, FiZap, FiList } from "react-icons/fi";
 import { AuthenticatedNavbar } from "@app/components/navbar/authenticated-navbar";
+import type { UserInfo } from "types/context";
 
 interface StatCardProps {
   icon: React.ElementType;
@@ -51,6 +53,13 @@ export default function Dashboard() {
       navigate("/");
     }
   }, [auth.isLoading, auth.isAuthenticated, navigate]);
+
+  const [apiUser, setApiUser] = useState<UserInfo | null>(null);
+
+  useEffect(() => {
+    if (!auth.isAuthenticated || !auth.user?.access_token) return;
+    getMe(auth.user.access_token).then(setApiUser).catch(console.error);
+  }, [auth.isAuthenticated, auth.user?.access_token]);
 
   if (auth.isLoading || !auth.isAuthenticated) {
     return null;

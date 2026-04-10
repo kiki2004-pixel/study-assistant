@@ -15,7 +15,8 @@
     "baseUrl": ".",
     "paths": {
       "@app/*": ["./app/*"],
-      "@lib/*": ["./lib/*"]
+      "@lib/*": ["./lib/*"],
+      "api/*": ["./api/*"]
     },
     "esModuleInterop": true,
     "verbatimModuleSyntax": true,

@@ -2,11 +2,14 @@ import tomllib
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from scrub.routers.validation_router import router as validation_router
 from scrub.routers.listmonk_router import router as listmonk_router
 from scrub.routers.webhook_router import router as webhook_router
+from scrub.routers.user_router import router as user_router
 from scrub.storage.webhook_store import WebhookStore
+from scrub.storage.user_store import UserStore
 from scrub.settings import settings
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -15,6 +18,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 async def lifespan(app: FastAPI):
     # Run schema init once at startup — not on every request
     WebhookStore(settings.watermark_db_url).init_schema()
+    UserStore(settings.watermark_db_url).init_schema()
     yield
 
 
@@ -35,6 +39,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# --- CORS ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # --- Initialize Metrics Engine ---
 Instrumentator().instrument(app).expose(app)
 
@@ -51,4 +63,9 @@ app.include_router(
 # Webhooks: /webhooks/register, /webhooks/deregister, /webhooks/list
 app.include_router(
     router=webhook_router, prefix="/webhooks", tags=["Webhooks"]
+)
+
+# User: /user/me
+app.include_router(
+    router=user_router, prefix="/user", tags=["User"]
 )

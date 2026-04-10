@@ -9,7 +9,7 @@
 # ── Full stack ────────────────────────────────────────────────────────────────
 
 run:
-	docker compose up -d
+	$(MAKE) deps
 	$(MAKE) -j2 api-dev web-dev
 
 stop:
@@ -41,7 +41,11 @@ zitadel:
 # ── Local dev servers (outside Docker) ───────────────────────────────────────
 
 api-dev:
-	cd api && uv run fastapi dev src/main.py --reload --port 3000
+	cd api && WATERMARK_DB_URL=postgresql+psycopg2://listmonk:listmonk@localhost:5432/listmonk \
+		CELERY_BROKER_URL=redis://localhost:6379/0 \
+		CELERY_RESULT_BACKEND=redis://localhost:6379/0 \
+		LISTMONK_URL=http://localhost:9000 \
+		uv run fastapi dev src/main.py --reload --port 3000
 
 web-dev:
 	cd web && bun run dev
