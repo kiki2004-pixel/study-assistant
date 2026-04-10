@@ -1,33 +1,17 @@
-import uuid
-from datetime import datetime
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+import httpx
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, HttpUrl
-
-from scrub.auth import verify_token
-from scrub.jobs.worker import get_queue, start_list_validation
-from scrub.models.validation_job_store import JobSource, JobType
-from scrub.repositories.history_repository import (
-    HistoryRepository,
-    get_history_repository,
-)
-from scrub.repositories.integration_repository import (
-    IntegrationRepository,
-    get_integration_repository,
-)
-from scrub.repositories.validation_job_repository import (
-    ValidationJobRepository,
-    get_validation_job_repository,
-)
-from scrub.services import listmonk_service
+from scrub.settings import get_settings, block_ssrf
 
 router = APIRouter()
 
-
-class ListmonkConfig(BaseModel):
-    url: HttpUrl
-    username: str
-    api_token: str
+class ListmonkSettings(BaseModel):
+    listmonk_url: str
+    listmonk_user: str
+    listmonk_pass: str
+    listmonk_list_id: str
+    listmonk_exclude_name_substrings: str = ""
 
 
 class IntegrationSummary(BaseModel):
@@ -43,58 +27,18 @@ class ConnectionTestResponse(BaseModel):
     subscriber_count: int | None = None
 
 
-class ListmonkList(BaseModel):
-    id: int
-    name: str
-    subscriber_count: int
-    type: str
-    active_job_request_id: str | None = None
-
-
-class ValidateListResponse(BaseModel):
-    job_id: str
-    request_id: str
-    status: str = "queued"
-
-
-class ValidationProgressResponse(BaseModel):
-    request_id: str
-    validated: int
-
-
-@router.get("/integrations", response_model=list[IntegrationSummary])
-async def list_integrations(
-    claims: dict = Depends(verify_token),
-    repo: IntegrationRepository = Depends(get_integration_repository),
-):
-    """List all Listmonk integrations for the current user."""
-    return repo.list(claims["sub"], claims.get("email"), claims.get("name"))
-
-
-@router.post("/integrations", response_model=IntegrationSummary, status_code=201)
-async def create_integration(
-    payload: ListmonkConfig,
-    claims: dict = Depends(verify_token),
-    repo: IntegrationRepository = Depends(get_integration_repository),
-):
-    """Create a new Listmonk integration for the current user."""
-    config = {
-        "url": str(payload.url),
-        "username": payload.username,
-        "api_token": payload.api_token,
-    }
-    return repo.create(claims["sub"], claims.get("email"), claims.get("name"), config)
-
-
-@router.get("/integrations/{integration_id}", response_model=IntegrationSummary)
-async def get_integration(
-    integration_id: int,
-    claims: dict = Depends(verify_token),
-    repo: IntegrationRepository = Depends(get_integration_repository),
-):
-    """Get a single Listmonk integration."""
-    integration = repo.get_owned(
-        integration_id, claims["sub"], claims.get("email"), claims.get("name")
+@router.get("/settings", response_model=ListmonkSettingsResponse)
+async def get_listmonk_settings():
+    """
+    Returns the current Listmonk integration settings.
+    Password is intentionally excluded from the response.
+    """
+    s = get_settings()
+    return ListmonkSettingsResponse(
+        listmonk_url=s.listmonk_url,
+        listmonk_user=s.listmonk_user,
+        listmonk_list_id=s.listmonk_list_id,
+        listmonk_exclude_name_substrings=s.listmonk_exclude_name_substrings,
     )
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found.")
@@ -106,25 +50,23 @@ async def get_integration(
     }
 
 
-@router.put("/integrations/{integration_id}", response_model=IntegrationSummary)
-async def update_integration(
-    integration_id: int,
-    payload: ListmonkConfig,
-    claims: dict = Depends(verify_token),
-    repo: IntegrationRepository = Depends(get_integration_repository),
-):
-    """Update credentials for a Listmonk integration."""
-    config = {
-        "url": str(payload.url),
-        "username": payload.username,
-        "api_token": payload.api_token,
-    }
-    result = repo.update_owned(
-        integration_id, claims["sub"], claims.get("email"), claims.get("name"), config
-    )
-    if not result:
-        raise HTTPException(status_code=404, detail="Integration not found.")
-    return result
+@router.post("/test-connection", response_model=ConnectionTestResponse)
+async def test_listmonk_connection(payload: ListmonkSettings):
+    """
+    Tests a Listmonk connection using the provided credentials.
+    Hits the /api/health endpoint and fetches subscriber count to verify access.
+    """
+    try:
+        async with httpx.AsyncClient(
+            base_url=payload.listmonk_url,
+            headers={
+                "Authorization": f"token {payload.listmonk_user}:{payload.listmonk_pass}"
+            },
+            timeout=5.0,
+        ) as client:
+            # 1. Health check
+            health = await client.get("/api/health")
+            health.raise_for_status()
 
 
 @router.delete("/integrations/{integration_id}", status_code=204)

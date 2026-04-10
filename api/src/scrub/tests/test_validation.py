@@ -9,19 +9,7 @@ os.environ["LISTMONK_PASS"] = "test"
 os.environ["POSTMARK_WEBHOOK_SECRET"] = "test"
 
 # 2. Imports
-from main import app  # noqa: E402
-from scrub.models.history_store import HistoryStore  # noqa: E402
-from scrub.models.webhook_store import WebhookStore  # noqa: E402
-from scrub.models.validation_job_store import ValidationJobStore  # noqa: E402
-from scrub.repositories.history_repository import (
-    HistoryRepository,
-    get_history_repository,
-)  # noqa: E402
-from scrub.repositories.webhook_repository import (
-    WebhookRepository,
-    get_webhook_repository,
-)  # noqa: E402
-from scrub.auth import verify_any_auth  # noqa: E402
+from main import app
 
 # Target path for mocking the DNS service within the validation logic
 MOCK_DNS_PATH = "scrub.services.validation_service.check_dns_records"
@@ -35,22 +23,9 @@ async def _fake_auth():
 
 
 @pytest.fixture(scope="module")
-def client(tmp_path_factory):
-    """Reusable TestClient instance with all DB dependencies pointed at temp SQLite."""
-    db_path = tmp_path_factory.mktemp("db") / "test.db"
-    db_url = f"sqlite:///{db_path}"
-
-    HistoryStore(db_url).init_schema()
-    WebhookStore(db_url).init_schema()
-    ValidationJobStore(db_url).init_schema()
-
-    app.dependency_overrides[get_history_repository] = lambda: HistoryRepository(db_url)
-    app.dependency_overrides[get_webhook_repository] = lambda: WebhookRepository(db_url)
-    app.dependency_overrides[verify_any_auth] = _fake_auth
-    yield TestClient(app)
-    app.dependency_overrides.pop(get_history_repository, None)
-    app.dependency_overrides.pop(get_webhook_repository, None)
-    app.dependency_overrides.pop(verify_any_auth, None)
+def client():
+    """Reusable TestClient instance."""
+    return TestClient(app)
 
 
 # 3. DNS-Based Single Validation Tests
@@ -164,5 +139,7 @@ def test_bulk_does_not_fail_on_internal_error(client, monkeypatch):
     }
     r = client.post("/validation/validate-bulk", json=payload)
     assert r.status_code == 200
-    # Expected: 1 error (explode@example.com) and 1 success (ok@example.com)
-    assert r.json()["summary"]["errors"] == 1
+
+    data = r.json()
+    assert data["summary"]["errors"] == 1
+    assert any(x["status"] == "error" for x in data["results"])

@@ -1,35 +1,22 @@
 import tomllib
 from pathlib import Path
-
-import sentry_sdk
-from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from scrub.routers.validation_router import router as validation_router
 from scrub.routers.listmonk_router import router as listmonk_router
 from scrub.routers.webhook_router import router as webhook_router
-from scrub.routers.user_router import router as user_router
-from scrub.routers.history_router import router as history_router
-from scrub.routers.api_key_router import router as api_key_router
-from scrub.routers.jobs_router import router as jobs_router
+from scrub.storage.webhook_store import WebhookStore
 from scrub.settings import settings
 from prometheus_fastapi_instrumentator import Instrumentator
+from contextlib import asynccontextmanager
 
-
-if settings.sentry_dsn:
-    sentry_sdk.init(
-        dsn=settings.sentry_dsn,
-        environment=settings.sentry_environment,
-        integrations=[FastApiIntegration(), SqlalchemyIntegration()],
-        traces_sample_rate=0.05,
-        send_default_pii=False,
-    )
+from mail_validation.jobs.listmonk_validator import run_cycle
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Run schema init once at startup — not on every request
+    WebhookStore(settings.watermark_db_url).init_schema()
     yield
 
 
@@ -43,22 +30,19 @@ with open(pyproject_path, "rb") as f:
     description = data["project"].get("description")
     version = data["project"].get("version")
 
+
+@asynccontextmanager
+async def _kickoff_listmonk_validation(app: FastAPI):
+    run_cycle.apply_async()
+    yield
+
+
 app = FastAPI(
     title=title,
     description=description,
     version=version,
     lifespan=lifespan,
-)
 
-# --- CORS ---
-_allowed_origins = [
-    o.strip() for o in settings.cors_allowed_origins.split(",") if o.strip()
-]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=_allowed_origins,
-    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-API-Key"],
 )
 
 # --- Initialize Metrics Engine ---
@@ -73,20 +57,3 @@ app.include_router(
 app.include_router(
     router=listmonk_router, prefix="/listmonk", tags=["Listmonk Integration"]
 )
-
-# Webhooks: /webhooks/register, /webhooks/deregister, /webhooks/list
-app.include_router(router=webhook_router, prefix="/webhooks", tags=["Webhooks"])
-
-# User: /context
-app.include_router(router=user_router, prefix="", tags=["User"])
-
-# Validation History: /validation/history
-app.include_router(
-    router=history_router, prefix="/validation/history", tags=["Validation History"]
-)
-
-# API Keys: /api-keys
-app.include_router(router=api_key_router, prefix="/api-keys", tags=["API Keys"])
-
-# Jobs: /jobs/progress/{request_id}, /jobs/active, /jobs/recent
-app.include_router(router=jobs_router, prefix="/jobs", tags=["Validation Jobs"])

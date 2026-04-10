@@ -1,7 +1,6 @@
 import asyncio
 import dns.asyncresolver
 from dns.resolver import NoAnswer, NXDOMAIN
-from dns.exception import Timeout
 
 
 def _resolver() -> dns.asyncresolver.Resolver:
@@ -19,15 +18,10 @@ def _resolver() -> dns.asyncresolver.Resolver:
 
 async def check_dns_records(domain: str) -> dict:
     """Verifies if a domain is capable of receiving mail."""
-    resolver = _resolver()
-    details = {"mx_found": False, "a_found": False, "mx_host": None}
+    details = {"mx_found": False, "a_found": False}
     try:
-        answers = await asyncio.wait_for(resolver.resolve(domain, "MX"), timeout=3.0)
-        mx_host = str(sorted(answers, key=lambda r: r.preference)[0].exchange).rstrip(
-            "."
-        )
+        await _RESOLVER.resolve(domain, "MX")
         details["mx_found"] = True
-        details["mx_host"] = mx_host
         return {"is_valid": True, "reason": "MAIL_SERVER_FOUND", "details": details}
     except (NoAnswer, NXDOMAIN):
         try:
@@ -44,5 +38,6 @@ async def check_dns_records(domain: str) -> dict:
                 "reason": "NO_MAIL_SERVER_CONFIGURED",
                 "details": details,
             }
-    except (Timeout, asyncio.TimeoutError, dns.exception.DNSException):
+    except (NoAnswer, NXDOMAIN, dns.exception.DNSException):
+        # Fail-safe: allow if DNS itself is unreachable to avoid false negatives
         return {"is_valid": True, "reason": "DNS_ERROR_FAIL_SAFE", "details": details}
