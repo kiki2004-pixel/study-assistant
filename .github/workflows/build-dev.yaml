@@ -29,7 +29,7 @@ jobs:
           token: ""
           filters: |
             api:
-              - 'src/**'
+              - 'server/**'
             web:
               - 'web/**'
 
@@ -53,7 +53,7 @@ jobs:
       - id: set_variables
         name: Set variables
         run: |
-          VER=$(python version.py)
+          VER=$(python server/version.py)
           BRANCH="${{ github.ref_name }}"
           BASE="${{ github.base_ref }}"
 
@@ -143,7 +143,7 @@ jobs:
       - name: Build API image
         if: needs.changes.outputs.api == 'true'
         run: |
-          docker build . \
+          docker build server/ \
             --build-arg "BUILD_ENV=${{ needs.prepare.outputs.build_env }}" \
             --build-arg "GIT_COMMIT=${{ github.sha }}" \
             --build-arg "APP_VERSION=${{ needs.prepare.outputs.version }}" \

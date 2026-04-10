@@ -1,0 +1,35 @@
+[project]
+name = "scrub"
+version = "2026.02.002"
+description = "AI backend responsible for receiving, validating and blacklisting invalid emails for clients"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.115.14",
+    "httpx>=0.28.1",
+    "pydantic>=2.11.7",
+    "pydantic-settings>=2.10.1",
+    "dnspython>=2.6.1",
+    "sqlalchemy>=2.0.41",
+    "psycopg2-binary>=2.9.11",
+    "alembic>=1.17.0",
+    "jsonschema>=4.25.1",
+    "prometheus-client>=0.20.0",
+    "prometheus-fastapi-instrumentator>=7.0.0",
+    "celery[redis]>=5.6.2",
+    "celery-types==0.24.0",
+    "sentry-sdk[fastapi]>=2.34.1",
+    "pillow>=11.2.1",
+    "listmonk>=0.3.9",
+    "email-validator>=2.3.0",
+    "pyjwt[cryptography]>=2.9.0",
+    "cryptography>=41.0.0",
+    "dnspython>=2.6.1",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.4",
+    "pytest-asyncio>=0.23.8",
+    "pytest-mock>=3.15.1",
+]

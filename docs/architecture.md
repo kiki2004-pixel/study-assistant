@@ -116,7 +116,11 @@ All tables managed by Alembic.
 
 ## Frontend (`web/`)
 
-React Router 7 SPA. No SSR — built to a static bundle served by nginx.
+<<<<<<< HEAD
+React Router 7 SPA. Auth via OIDC (Zitadel). No SSR — built to a static bundle and served by nginx.
+=======
+React Router 7 SPA. Auth via OIDC (Keycloak). No SSR — built to a static bundle and served by nginx.
+>>>>>>> 354433c (fix: move project files into server/ subdirectory)
 
 ```
 web/
@@ -194,7 +198,14 @@ web/
 |---------|---------|------|
 | `scrub_db` | PostgreSQL for API | 5432 |
 | `redis` | Celery broker + result backend | 6379 |
-| `zitadel` | OIDC identity provider | 8080 |
 | `listmonk_app` | Newsletter platform | 9000 |
+| `listmonk_db` | Postgres for listmonk + watermarks | 5432 |
+<<<<<<< HEAD
+| `zitadel` | OIDC identity provider | 8080 |
+| `zitadel-db` | Postgres for zitadel | — |
+=======
+| `keycloak` | OIDC identity provider | 8080 |
+| `keycloak-db` | Postgres for keycloak | — |
+>>>>>>> 354433c (fix: move project files into server/ subdirectory)
 | `prometheus` | Metrics scraper | 9090 |
 | `grafana` | Metrics dashboard | 3001 |

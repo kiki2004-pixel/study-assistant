@@ -1,7 +1,8 @@
 services:
   scrub:
-    build: .
-
+    build: server
+    env_file:
+      - server/.env
     ports:
       - "3000:3000"
     environment:
@@ -31,9 +32,9 @@ services:
     restart: unless-stopped
 
   celery-worker:
-    build: api
+    build: server
     env_file:
-      - api/.env
+      - server/.env
     depends_on:
       - redis
       - listmonk_app
