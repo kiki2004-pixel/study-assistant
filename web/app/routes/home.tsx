@@ -9,25 +9,24 @@ export default function Home() {
 
   return (
     <Box minH="100vh" bg="bg" display="flex" flexDirection="column">
-      {auth.isAuthenticated ? <AuthenticatedNavbar /> : <UnauthenticatedNavbar />}
+      {auth.isAuthenticated ? (
+        <AuthenticatedNavbar />
+      ) : (
+        <UnauthenticatedNavbar />
+      )}
 
-      <Box flex={1} display="flex" alignItems="center" justifyContent="center" bg="bg">
+      <Box
+        flex={1}
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        bg="bg"
+      >
         <Container maxW="3xl" textAlign="center">
-          <Heading
-            fontSize={{ base: "4xl", md: "6xl" }}
-            fontWeight="extrabold"
-            letterSpacing="tight"
-            lineHeight="1.1"
-            mb={5}
-          >
-            Validate Emails{" "}
-            <Box as="span" color="brand.solid">
-              at Scale
-            </Box>
+          <Heading>
+            Remove invalid recipients, block fake users and bots, prevent fraud,
+            and help you save money.
           </Heading>
-          <Text color="fg.muted" fontSize={{ base: "lg", md: "xl" }}>
-            Keep your mailing lists clean and your deliverability high.
-          </Text>
         </Container>
       </Box>
 

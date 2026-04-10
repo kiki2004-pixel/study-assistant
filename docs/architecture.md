@@ -72,7 +72,7 @@ Celery beat (every N seconds)
 
 ## Frontend (`web/`)
 
-React Router 7 SPA. Auth via OIDC (Keycloak). No SSR — built to a static bundle and served by nginx.
+React Router 7 SPA. Auth via OIDC (Zitadel). No SSR — built to a static bundle and served by nginx.
 
 ```
 web/
@@ -117,7 +117,7 @@ VITE_* env vars are baked into the build at image build time (passed as Docker b
 | `redis` | Celery broker + result backend | 6379 |
 | `listmonk_app` | Newsletter platform | 9000 |
 | `listmonk_db` | Postgres for listmonk + watermarks | 5432 |
-| `keycloak` | OIDC identity provider | 8080 |
-| `keycloak-db` | Postgres for keycloak | — |
+| `zitadel` | OIDC identity provider | 8080 |
+| `zitadel-db` | Postgres for zitadel | — |
 | `prometheus` | Metrics scraper | 9090 |
 | `grafana` | Metrics dashboard | 3001 |
