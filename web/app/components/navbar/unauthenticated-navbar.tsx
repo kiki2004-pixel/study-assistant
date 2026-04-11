@@ -72,6 +72,7 @@ export function UnauthenticatedNavbar() {
               borderColor="fg"
               borderRadius="lg"
               px={5}
+              h="44px"
               fontWeight="medium"
               _hover={{ bg: "bg.muted" }}
               display={{ base: "none", md: "flex" }}
