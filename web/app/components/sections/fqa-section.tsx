@@ -45,7 +45,7 @@ export function FqaSection() {
             letterSpacing="-0.03em"
             lineHeight={1.05}
           >
-            FQA
+            FAQ
           </Heading>
           <Accordion.Root collapsible defaultValue={["q1"]}>
             {questions.map((item, index) => (
