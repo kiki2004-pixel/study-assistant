@@ -1,41 +1,27 @@
 import { Box, Container, Flex, Grid, Heading, Text } from "@chakra-ui/react";
-import {
-  FiCheckSquare,
-  FiSend,
-  FiUser,
-  FiShield,
-  FiCode,
-  FiList,
-} from "react-icons/fi";
 
 const features = [
   {
-    icon: FiCheckSquare,
     title: "Format check",
     text: "Catch typos and malformed addresses before they enter your list.",
   },
   {
-    icon: FiSend,
     title: "Delivery check",
     text: "Verify the domain has working MX records and can receive mail.",
   },
   {
-    icon: FiUser,
     title: "Email profiling",
     text: "Identify role-based, catch-all, and high-risk address patterns.",
   },
   {
-    icon: FiShield,
     title: "Blocklists",
     text: "Flag addresses and domains known for spam, abuse, or fraud.",
   },
   {
-    icon: FiCode,
     title: "No-code APIs",
     text: "Drop validation into any form or workflow with a single endpoint.",
   },
   {
-    icon: FiList,
     title: "Mailing lists",
     text: "Upload a CSV and clean your entire list in one go.",
   },
@@ -79,13 +65,9 @@ export function HowItWorksSection() {
           </Heading>
         </Flex>
 
-        {/* Features grid */}
+        {/* Features list */}
         <Grid
-          templateColumns={{
-            base: "1fr",
-            md: "repeat(2, 1fr)",
-            lg: "repeat(3, 1fr)",
-          }}
+          templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }}
           gap={0}
           border="1px solid"
           borderColor="border"
@@ -96,18 +78,22 @@ export function HowItWorksSection() {
           {features.map((feature) => (
             <Flex
               key={feature.title}
-              direction="column"
-              gap={3}
-              p={8}
+              direction="row"
+              align="baseline"
+              gap={4}
+              px={8}
+              py={5}
               bg="bg.subtle"
               borderBottomWidth="1px"
               borderRightWidth="1px"
               borderColor="border"
             >
-              <Box color="brand.solid" fontSize="xl">
-                <feature.icon />
-              </Box>
-              <Text fontWeight="600" fontSize="sm" letterSpacing="0.02em">
+              <Text
+                fontWeight="600"
+                fontSize="sm"
+                flexShrink={0}
+                w="120px"
+              >
                 {feature.title}
               </Text>
               <Text fontSize="sm" color="fg.muted" lineHeight={1.6}>
