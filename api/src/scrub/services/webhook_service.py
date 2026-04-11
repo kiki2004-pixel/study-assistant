@@ -12,7 +12,7 @@ from scrub.storage.webhook_store import WebhookStore
 
 logger = logging.getLogger(__name__)
 
-MAX_RETRIES = 3  # retries after the initial attempt = 4 total attempts.
+MAX_RETRIES = 3  # retries after the initial attempt = 4 total attempts
 RETRY_DELAYS = [2, 5, 10]  # seconds between each retry
 
 

@@ -55,8 +55,12 @@ jobs:
         if: steps.changes.outputs.api_changed == 'true' || steps.changes.outputs.web_changed == 'true'
         run: |
           chmod +x .github/scripts/bump-version.sh
-          [[ "${{ steps.changes.outputs.api_changed }}" == "true" ]] && .github/scripts/bump-version.sh api
-          [[ "${{ steps.changes.outputs.web_changed }}" == "true" ]] && .github/scripts/bump-version.sh web
+          if [[ "${{ steps.changes.outputs.api_changed }}" == "true" ]]; then
+            .github/scripts/bump-version.sh api
+          fi
+          if [[ "${{ steps.changes.outputs.web_changed }}" == "true" ]]; then
+            .github/scripts/bump-version.sh web
+          fi
 
       - name: Commit and push
         if: steps.changes.outputs.api_changed == 'true' || steps.changes.outputs.web_changed == 'true'
