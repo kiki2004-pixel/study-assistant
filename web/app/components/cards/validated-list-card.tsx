@@ -1,5 +1,4 @@
-import { Box, Flex, Icon, Text } from "@chakra-ui/react";
-import { FiCheck, FiMail } from "react-icons/fi";
+import { Badge, Box, Flex, Text } from "@chakra-ui/react";
 import { STATUS_CONFIG, VALIDATED_EMAILS } from "@lib/const";
 
 export function ValidatedListCard() {
@@ -14,76 +13,71 @@ export function ValidatedListCard() {
       overflow="hidden"
       shadow="sm"
     >
-      <Flex
-        gap={1.5}
-        px={4}
-        py={3}
-        borderBottomWidth="1px"
-        borderColor="fg"
-        align="center"
-        justify="space-between"
-      >
-        <Flex gap={1.5}>
-          <Box w={2.5} h={2.5} borderRadius="full" bg="red.300" />
-          <Box w={2.5} h={2.5} borderRadius="full" bg="yellow.300" />
-          <Box w={2.5} h={2.5} borderRadius="full" bg="green.300" />
-        </Flex>
-        <Flex
-          align="center"
-          gap={1.5}
-          bg="brand.50"
-          border="1px solid"
-          borderColor="brand.200"
-          borderRadius="full"
-          px={2.5}
-          py={0.5}
+      {/* Header */}
+      <Box px={4} pt={4} pb={3} borderBottomWidth="1px" borderColor="border">
+        <Text
+          fontSize="9px"
+          fontWeight="semibold"
+          letterSpacing="0.12em"
+          textTransform="uppercase"
+          color="fg.muted"
+          mb={2}
         >
-          <Icon as={FiCheck} boxSize={3} color="brand.600" />
-          <Text fontSize="xs" color="brand.700" fontWeight="medium">
-            {valid}/{VALIDATED_EMAILS.length} valid
+          After Scrub
+        </Text>
+        <Flex align="center" justify="space-between">
+          <Text fontSize="xs" fontWeight="semibold" color="fg">
+            Validated
           </Text>
+          <Badge
+            colorPalette="green"
+            variant="subtle"
+            fontSize="10px"
+            borderRadius="full"
+            px={2}
+            py={0.5}
+          >
+            ✓ Clean · {valid}/{VALIDATED_EMAILS.length}
+          </Badge>
         </Flex>
-      </Flex>
-      <Box p={4}>
-        <Flex direction="column" gap={1}>
+      </Box>
+
+      {/* Email rows */}
+      <Box px={4} py={3}>
+        <Flex direction="column" gap={1.5}>
           {VALIDATED_EMAILS.map((row, i) => {
             const cfg = STATUS_CONFIG[row.status];
             return (
-              <Flex
-                key={i}
-                align="center"
-                justify="space-between"
-                px={3}
-                py={2}
-                borderRadius="lg"
-                bg={i % 2 === 0 ? "bg" : "transparent"}
-              >
+              <Flex key={i} align="center" justify="space-between" gap={2}>
                 <Flex align="center" gap={2.5} flex={1} minW={0}>
-                  <Icon
-                    as={FiMail}
-                    boxSize={3.5}
-                    color="fg.muted"
+                  <Box
+                    w={1.5}
+                    h={1.5}
+                    borderRadius="full"
+                    bg={cfg.color}
                     flexShrink={0}
                   />
                   <Text fontSize="xs" fontFamily="mono" color="fg" truncate>
                     {row.email}
                   </Text>
                 </Flex>
-                <Flex
-                  align="center"
-                  gap={1}
-                  bg={cfg.bg}
+                <Badge
+                  colorPalette={
+                    row.status === "valid"
+                      ? "green"
+                      : row.status === "duplicate"
+                        ? "yellow"
+                        : "red"
+                  }
+                  variant="subtle"
+                  fontSize="10px"
                   borderRadius="full"
                   px={2}
                   py={0.5}
                   flexShrink={0}
-                  ml={2}
                 >
-                  <Icon as={cfg.icon} boxSize={2.5} color={cfg.color} />
-                  <Text fontSize="10px" color={cfg.color} fontWeight="medium">
-                    {cfg.label}
-                  </Text>
-                </Flex>
+                  {cfg.label}
+                </Badge>
               </Flex>
             );
           })}

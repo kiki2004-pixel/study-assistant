@@ -147,7 +147,15 @@ export function HeroSection() {
           letterSpacing="-0.03em"
           mb={6}
         >
-          Remove invalid emails, block fake users and bots
+          Remove{" "}
+          <Box as="span" fontStyle="italic" color="red.400">
+            invalid
+          </Box>{" "}
+          emails, block{" "}
+          <Box as="span" fontStyle="italic" color="red.400">
+            fake
+          </Box>{" "}
+          users and bots
         </Heading>
         <Text
           color="fg.muted"

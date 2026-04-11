@@ -10,22 +10,22 @@ export function FeatureCardsSection() {
         <SimpleGrid columns={{ base: 1, lg: 3 }} gap={5} alignItems="center">
           <Box
             display={{ base: "none", lg: "block" }}
-            transform="scale(0.92)"
+            transform="scale(0.78)"
             transformOrigin="center"
-            opacity={0.8}
+            opacity={0.45}
             transition="opacity 0.2s, transform 0.2s"
-            _hover={{ opacity: 1, transform: "scale(0.95)" }}
+            _hover={{ opacity: 0.7, transform: "scale(0.82)" }}
           >
             <DirtyListCard />
           </Box>
           <ValidatorInputCard />
           <Box
             display={{ base: "none", lg: "block" }}
-            transform="scale(0.92)"
+            transform="scale(0.78)"
             transformOrigin="center"
-            opacity={0.8}
+            opacity={0.45}
             transition="opacity 0.2s, transform 0.2s"
-            _hover={{ opacity: 1, transform: "scale(0.95)" }}
+            _hover={{ opacity: 0.7, transform: "scale(0.82)" }}
           >
             <ValidatedListCard />
           </Box>
