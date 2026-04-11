@@ -1,23 +1,22 @@
-FROM oven/bun:1 AS development-dependencies-env
+FROM node:20-alpine AS development-dependencies-env
 COPY . /app
 WORKDIR /app
-RUN bun install --frozen-lockfile
+RUN npm ci --legacy-peer-deps
 
-FROM oven/bun:1 AS production-dependencies-env
-COPY ./package.json bun.lock /app/
+FROM node:20-alpine AS production-dependencies-env
+COPY ./package.json package-lock.json /app/
 WORKDIR /app
-RUN bun install --frozen-lockfile --production
+RUN npm ci --omit=dev --legacy-peer-deps
 
-# Node is required for the SSR build — Bun's react-dom/server lacks renderToPipeableStream
 FROM node:20-alpine AS build-env
 COPY . /app/
 COPY --from=development-dependencies-env /app/node_modules /app/node_modules
 WORKDIR /app
-RUN npx react-router build
+RUN npm run build
 
-FROM oven/bun:1
-COPY ./package.json bun.lock /app/
+FROM node:20-alpine
+COPY ./package.json package-lock.json /app/
 COPY --from=production-dependencies-env /app/node_modules /app/node_modules
 COPY --from=build-env /app/build /app/build
 WORKDIR /app
-CMD ["bun", "run", "start"]
+CMD ["npm", "run", "start"]
