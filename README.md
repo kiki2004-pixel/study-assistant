@@ -21,6 +21,7 @@ make api-dev       # API dev server (port 3000)
 make web-dev       # web dev server (port 5173)
 make worker-dev    # Celery worker
 make test          # unit tests
+make lint          # format api (ruff) and web (prettier)
 make migrate       # apply DB migrations
 make clean         # stop + remove volumes
 ```
