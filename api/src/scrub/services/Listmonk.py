@@ -1,12 +1,13 @@
-
 import httpx
 from listmonk.models import Subscriber
 from pydantic import BaseModel
 
 from scrub.settings import Settings
 
+
 class BlocklistSubscriberResult(BaseModel):
     data: bool
+
 
 class ListmonkResults(BaseModel):
     results: list[Subscriber]
@@ -52,7 +53,6 @@ class Listmonk:
         except httpx.HTTPError:
             return BlocklistSubscriberResult(data=False)
 
-
     def subscriber_by_email(self, email: str) -> Subscriber:
         result = self.http_client.get(
             f"/api/subscribers?query=subscribers.email = '{email}'"
@@ -60,11 +60,14 @@ class Listmonk:
         try:
             results = ListmonkData(**result.raise_for_status().json())
             if len(results.data.results) == 0:
-                return Subscriber(id=0, email=email, status="disabled", created_at="", updated_at="")
+                return Subscriber(
+                    id=0, email=email, status="disabled", created_at="", updated_at=""
+                )
             return ListmonkData(**result.json()).data.results[0]
         except httpx.HTTPError:
-            return Subscriber(id=0, email=email, status="disabled", created_at="", updated_at="")
-
+            return Subscriber(
+                id=0, email=email, status="disabled", created_at="", updated_at=""
+            )
 
     def unsubscribe_subscriber(self, email: str):
         result = self.http_client.put(
@@ -75,7 +78,6 @@ class Listmonk:
             return BlocklistSubscriberResult(**result.raise_for_status().json())
         except httpx.HTTPError:
             return BlocklistSubscriberResult(data=False)
-
 
     def subscribers_count(self) -> int:
         result = self.subscribers(1, 1)

@@ -19,11 +19,13 @@ def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> str:
 
 # Dependency
 
+
 def get_webhook_store() -> WebhookStore:
     return WebhookStore(settings.watermark_db_url)
 
 
 # Models
+
 
 class RegisterWebhookRequest(BaseModel):
     url: HttpUrl
@@ -43,6 +45,7 @@ class WebhookListItem(BaseModel):
 
 
 # Routes
+
 
 @router.post("/register", response_model=RegisterWebhookResponse)
 async def register_webhook(

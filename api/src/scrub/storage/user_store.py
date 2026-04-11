@@ -59,9 +59,7 @@ class UserStore:
         )
         with self._engine.begin() as conn:
             conn.execute(stmt)
-            row = conn.execute(
-                select(users).where(users.c.sub == sub)
-            ).first()
+            row = conn.execute(select(users).where(users.c.sub == sub)).first()
         if row is None:
             raise RuntimeError(f"Failed to upsert user with sub {sub!r}")
         return User(id=row[0], sub=row[1], email=row[2], name=row[3], created_at=row[4])

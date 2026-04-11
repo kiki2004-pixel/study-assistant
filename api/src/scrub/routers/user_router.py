@@ -23,4 +23,6 @@ async def get_current_user(payload: dict = Depends(verify_token)) -> UserInfo:
         email=payload.get("email"),
         name=payload.get("name"),
     )
-    return UserInfo(id=user.id, email=user.email, name=user.name, created_at=user.created_at)
+    return UserInfo(
+        id=user.id, email=user.email, name=user.name, created_at=user.created_at
+    )

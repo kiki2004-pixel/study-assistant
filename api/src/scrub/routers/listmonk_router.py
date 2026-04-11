@@ -7,6 +7,7 @@ from scrub.settings import get_settings, block_ssrf
 
 router = APIRouter()
 
+
 # Request / Response Models
 class ListmonkSettings(BaseModel):
     listmonk_url: HttpUrl
@@ -28,6 +29,7 @@ class ConnectionTestResponse(BaseModel):
     success: bool
     message: str
     subscriber_count: int | None = None
+
 
 # Routes
 @router.get("/settings", response_model=ListmonkSettingsResponse)

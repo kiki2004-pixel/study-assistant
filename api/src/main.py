@@ -61,11 +61,7 @@ app.include_router(
 )
 
 # Webhooks: /webhooks/register, /webhooks/deregister, /webhooks/list
-app.include_router(
-    router=webhook_router, prefix="/webhooks", tags=["Webhooks"]
-)
+app.include_router(router=webhook_router, prefix="/webhooks", tags=["Webhooks"])
 
 # User: /user/me
-app.include_router(
-    router=user_router, prefix="/user", tags=["User"]
-)
+app.include_router(router=user_router, prefix="/user", tags=["User"])

@@ -51,22 +51,28 @@ async def dispatch_webhook(store: WebhookStore, event_payload: Dict[str, Any]) -
     if not registrations:
         return
 
-    body = json.dumps({
-        "event": "validation.completed",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        **event_payload,
-    }).encode()
+    body = json.dumps(
+        {
+            "event": "validation.completed",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            **event_payload,
+        }
+    ).encode()
 
     async with httpx.AsyncClient() as client:
         for reg in registrations:
             signature = store.sign_payload(reg.secret, body)
             delivered = False
 
-            for attempt in range(MAX_RETRIES + 1):  # initial attempt + MAX_RETRIES retries
+            for attempt in range(
+                MAX_RETRIES + 1
+            ):  # initial attempt + MAX_RETRIES retries
                 delivered = await _deliver(client, reg.url, body, signature)
                 if delivered:
                     await asyncio.to_thread(store.record_success, reg.id)
-                    logger.info("Webhook delivered url=%s attempt=%d", reg.url, attempt + 1)
+                    logger.info(
+                        "Webhook delivered url=%s attempt=%d", reg.url, attempt + 1
+                    )
                     break
                 if attempt < MAX_RETRIES:
                     await asyncio.sleep(RETRY_DELAYS[attempt])

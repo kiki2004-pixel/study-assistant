@@ -68,9 +68,7 @@ class WebhookStore:
         with self._engine.begin() as conn:
             conn.execute(stmt)
             row = conn.execute(
-                select(webhook_registrations).where(
-                    webhook_registrations.c.url == url
-                )
+                select(webhook_registrations).where(webhook_registrations.c.url == url)
             ).first()
         if row is None:
             raise RuntimeError(
@@ -127,9 +125,7 @@ class WebhookStore:
         """Remove a webhook registration by URL."""
         with self._engine.begin() as conn:
             result = conn.execute(
-                delete(webhook_registrations).where(
-                    webhook_registrations.c.url == url
-                )
+                delete(webhook_registrations).where(webhook_registrations.c.url == url)
             )
         return result.rowcount > 0
 

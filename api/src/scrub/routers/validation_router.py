@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 def get_webhook_store() -> WebhookStore:
     return WebhookStore(settings.watermark_db_url)
+
+
 router = APIRouter()
 
 # Prometheus Metrics
@@ -54,6 +56,7 @@ DUPLICATES_REMOVED_COUNTER = Counter(
 
 
 # Routes
+
 
 @router.get("/trigger")
 async def trigger_validation():
@@ -91,9 +94,7 @@ async def validate_single(
             },
         )
 
-    VALIDATION_COUNTER.labels(
-        endpoint="single", status=status, layer=layer
-    ).inc()
+    VALIDATION_COUNTER.labels(endpoint="single", status=status, layer=layer).inc()
 
     response = {
         "email": email,
@@ -104,12 +105,20 @@ async def validate_single(
 
     # Fire webhook after response is sent — FastAPI BackgroundTasks manages
     # execution safely, unlike asyncio.create_task() which is unbounded
-    background_tasks.add_task(dispatch_webhook, webhook_store, {
-        "endpoint": "single",
-        "job_id": None,
-        "summary": {"total": 1, "valid": 1 if result["ok"] else 0, "invalid": 0 if result["ok"] else 1},
-        "result": response,
-    })
+    background_tasks.add_task(
+        dispatch_webhook,
+        webhook_store,
+        {
+            "endpoint": "single",
+            "job_id": None,
+            "summary": {
+                "total": 1,
+                "valid": 1 if result["ok"] else 0,
+                "invalid": 0 if result["ok"] else 1,
+            },
+            "result": response,
+        },
+    )
 
     return response
 
@@ -195,9 +204,7 @@ async def validate_bulk(
                 continue
 
             valid_count += 1
-            VALIDATION_COUNTER.labels(
-                endpoint="bulk", status=status, layer=layer
-            ).inc()
+            VALIDATION_COUNTER.labels(endpoint="bulk", status=status, layer=layer).inc()
             item = BulkEmailResult(
                 email=email,
                 valid=True,
@@ -227,18 +234,22 @@ async def validate_bulk(
 
     bulk_response = BulkValidationResponse(summary=summary, results=results)
 
-    background_tasks.add_task(dispatch_webhook, webhook_store, {
-        "endpoint": "bulk",
-        "job_id": None,
-        "summary": {
-            "total": summary.total,
-            "processed": summary.processed,
-            "valid": summary.valid,
-            "invalid": summary.invalid,
-            "errors": summary.errors,
-            "duplicates_removed": summary.duplicates_removed,
-            "duration_ms": summary.duration_ms,
+    background_tasks.add_task(
+        dispatch_webhook,
+        webhook_store,
+        {
+            "endpoint": "bulk",
+            "job_id": None,
+            "summary": {
+                "total": summary.total,
+                "processed": summary.processed,
+                "valid": summary.valid,
+                "invalid": summary.invalid,
+                "errors": summary.errors,
+                "duplicates_removed": summary.duplicates_removed,
+                "duration_ms": summary.duration_ms,
+            },
         },
-    })
+    )
 
     return bulk_response
