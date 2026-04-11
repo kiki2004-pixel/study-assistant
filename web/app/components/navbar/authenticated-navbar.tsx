@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
-import { Box, Container, Flex, Icon, Text } from "@chakra-ui/react";
+import { Avatar, Box, Container, Flex, Icon, Text } from "@chakra-ui/react";
 import { FiCheckCircle } from "react-icons/fi";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { getMe } from "api/context";
 import type { UserContext } from "types/context";
-import UserDropdown from "../dropdowns/user-dropdown";
 import UsageStats from "../popovers/usage-stats";
 import ApiDropdown from "../dropdowns/api-dropdown";
 
@@ -19,6 +18,7 @@ const NAV_LINKS = [
 export function AuthenticatedNavbar() {
   const auth = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [context, setContext] = useState<UserContext | null>(null);
 
   useEffect(() => {
@@ -60,7 +60,10 @@ export function AuthenticatedNavbar() {
                     key={link.label}
                     fontSize="sm"
                     fontWeight="medium"
-                    color="fg.muted"
+                    color={location.pathname === link.href ? "fg" : "fg.muted"}
+                    bg={
+                      location.pathname === link.href ? "brand.200" : undefined
+                    }
                     cursor="pointer"
                     _hover={{ color: "fg" }}
                     transition="color 0.15s"
@@ -83,7 +86,13 @@ export function AuthenticatedNavbar() {
                   <UsageStats {...context.stats} />
                 </Flex>
               )}
-              <UserDropdown />
+              <Avatar.Root
+                colorPalette="red"
+                onClick={() => navigate("/settings/general")}
+              >
+                <Avatar.Fallback />
+                <Avatar.Image src="https://bit.ly/broken-link" />
+              </Avatar.Root>
             </Flex>
           </Flex>
         </Container>

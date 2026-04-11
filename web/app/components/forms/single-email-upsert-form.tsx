@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button, Field, Flex, Input, Spinner, Text } from "@chakra-ui/react";
-import { validateEmail, type ValidationResult } from "api/validation";
+import { validateEmail } from "api/validation";
 import { ValidationResultCard } from "@app/components/cards/validation-result-card";
+import type { ValidationResult } from "types/validation";
 
 const SingleEmailUpsertForm = () => {
   const [email, setEmail] = useState("");

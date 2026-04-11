@@ -135,7 +135,7 @@ export function HeroSection() {
               color="fg.muted"
               letterSpacing="0.01em"
             >
-              email validation & list cleaning
+              No credit card required to get started
             </Text>
           </Flex>
         </Flex>

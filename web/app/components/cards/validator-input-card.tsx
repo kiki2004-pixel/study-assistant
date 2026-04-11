@@ -18,7 +18,12 @@ function Chip({ label }: { label: string }) {
       px={2}
       py={0.5}
     >
-      <Text fontSize="9px" color="green.700" _dark={{ color: "green.300" }} fontWeight="medium">
+      <Text
+        fontSize="9px"
+        color="green.700"
+        _dark={{ color: "green.300" }}
+        fontWeight="medium"
+      >
         {label}
       </Text>
     </Flex>
@@ -192,7 +197,12 @@ export function ValidatorInputCard() {
           >
             john@company.com
           </Text>
-          <Text fontSize="xs" color="green.600" fontWeight="semibold" flexShrink={0}>
+          <Text
+            fontSize="xs"
+            color="green.600"
+            fontWeight="semibold"
+            flexShrink={0}
+          >
             Valid
           </Text>
           <Text fontSize="10px" color="fg.muted" flexShrink={0}>

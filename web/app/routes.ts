@@ -8,4 +8,10 @@ export default [
   route("docs", "routes/docs.tsx"),
   route("api", "routes/api.tsx"),
   route("auth/callback", "routes/auth.callback.tsx"),
+  route("settings", "routes/settings.tsx", [
+    index("routes/settings.index.tsx"),
+    route("general", "routes/settings.general.tsx"),
+    route("account", "routes/settings.account.tsx"),
+    route("analytics", "routes/settings.analytics.tsx"),
+  ]),
 ] satisfies RouteConfig;

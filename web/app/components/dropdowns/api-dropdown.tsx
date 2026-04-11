@@ -1,11 +1,15 @@
 import { Button, Link, Menu, Portal } from "@chakra-ui/react";
 import { IoIosArrowDown } from "react-icons/io";
 
+const navItems = [
+  { label: "API Keys", href: "/api/keys" },
+  { label: "Docs", href: "/docs" },
+];
 const ApiDropdown = () => {
   return (
     <Menu.Root>
       <Menu.Trigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="ghost" size="sm">
           API
           <IoIosArrowDown />
         </Button>
@@ -13,15 +17,13 @@ const ApiDropdown = () => {
       <Portal>
         <Menu.Positioner>
           <Menu.Content>
-            <Menu.Item value="new-txt-a">
-              API Keys <Menu.ItemCommand>⌘E</Menu.ItemCommand>
-            </Menu.Item>
-            <Menu.Item value="docs">
-              <Link href="/docs">
-                {" "}
-                Docs <Menu.ItemCommand>⌘N</Menu.ItemCommand>
-              </Link>
-            </Menu.Item>
+            {navItems.map((item) => (
+              <Menu.Item value={item.label} key={item.label}>
+                <Link href={item.href}>
+                  {item.label} <Menu.ItemCommand>⌘E</Menu.ItemCommand>
+                </Link>
+              </Menu.Item>
+            ))}
           </Menu.Content>
         </Menu.Positioner>
       </Portal>

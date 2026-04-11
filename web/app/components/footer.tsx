@@ -36,9 +36,9 @@ export function Footer() {
             </Flex>
 
             <Text fontSize="sm" color="fg.muted" lineHeight={1.7}>
-              Scrub is an open-source email hygiene tool that removes invalid
-              recipients, blocks fake users and bots, and helps you protect your
-              sender reputation.
+              Scrub is an email hygiene tool that removes invalid recipients,
+              blocks fake users and bots, and helps you protect your sender
+              reputation.
             </Text>
 
             <Text fontSize="sm" color="fg.muted">
@@ -90,7 +90,7 @@ export function Footer() {
             gap={3}
           >
             <Text fontSize="xs" color="fg.muted">
-              © {new Date().getFullYear()} scrub_ — All rights reserved
+              © {new Date().getFullYear()} The Scrub App — All rights reserved
             </Text>
             <Flex gap={5}>
               {LEGAL_LINKS.map((link) => (
