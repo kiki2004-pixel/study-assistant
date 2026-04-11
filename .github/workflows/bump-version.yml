@@ -1,0 +1,66 @@
+name: Bump version
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "api/**"
+      - "web/**"
+      - ".github/workflows/bump-version.yml"
+  workflow_dispatch:
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-24.04
+    if: github.actor != 'scrub-bot[bot]'
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Configure git
+        run: |
+          git config user.name "scrub-bot[bot]"
+          git config user.email "scrub-bot[bot]@users.noreply.github.com"
+
+      - name: Detect changed components
+        id: changes
+        run: |
+          BASE="${{ github.event.before }}"
+          HEAD="${{ github.sha }}"
+          if [[ -z "$BASE" || "$BASE" == "0000000000000000000000000000000000000000" ]]; then
+            BASE="$(git rev-list --max-parents=0 "$HEAD")"
+          fi
+          CHANGED=$(git diff --name-only "$BASE" "$HEAD")
+          echo "$CHANGED" | grep -q '^api/' && echo "api_changed=true" >> "$GITHUB_OUTPUT" || echo "api_changed=false" >> "$GITHUB_OUTPUT"
+          echo "$CHANGED" | grep -q '^web/' && echo "web_changed=true" >> "$GITHUB_OUTPUT" || echo "web_changed=false" >> "$GITHUB_OUTPUT"
+
+      - name: Bump versions
+        if: steps.changes.outputs.api_changed == 'true' || steps.changes.outputs.web_changed == 'true'
+        run: |
+          chmod +x .github/scripts/bump-version.sh
+          [[ "${{ steps.changes.outputs.api_changed }}" == "true" ]] && .github/scripts/bump-version.sh api
+          [[ "${{ steps.changes.outputs.web_changed }}" == "true" ]] && .github/scripts/bump-version.sh web
+
+      - name: Commit and push
+        if: steps.changes.outputs.api_changed == 'true' || steps.changes.outputs.web_changed == 'true'
+        run: |
+          git add VERSIONS
+          git commit -m "chore(release): bump versions"
+          git push origin main
