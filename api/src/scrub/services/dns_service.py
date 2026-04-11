@@ -10,10 +10,14 @@ _RESOLVER.lifetime = 2.0
 
 async def check_dns_records(domain: str) -> dict:
     """Verifies if a domain is capable of receiving mail."""
-    details = {"mx_found": False, "a_found": False}
+    details = {"mx_found": False, "a_found": False, "mx_host": None}
     try:
-        await _RESOLVER.resolve(domain, "MX")
+        answers = await _RESOLVER.resolve(domain, "MX")
+        mx_host = str(sorted(answers, key=lambda r: r.preference)[0].exchange).rstrip(
+            "."
+        )
         details["mx_found"] = True
+        details["mx_host"] = mx_host
         return {"is_valid": True, "reason": "MAIL_SERVER_FOUND", "details": details}
     except (NoAnswer, NXDOMAIN):
         try:
@@ -31,5 +35,4 @@ async def check_dns_records(domain: str) -> dict:
                 "details": details,
             }
     except (NoAnswer, NXDOMAIN, Timeout, dns.exception.DNSException):
-        # Fail-safe: allow if DNS itself is unreachable to avoid false negatives
         return {"is_valid": True, "reason": "DNS_ERROR_FAIL_SAFE", "details": details}

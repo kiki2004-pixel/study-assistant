@@ -79,21 +79,6 @@ async def validate_single(
     layer = result.get("layer", "dns")
     status = result.get("status", "undeliverable")
 
-    if not result["ok"] and layer == "syntax":
-        VALIDATION_COUNTER.labels(
-            endpoint="single", status="undeliverable", layer="syntax"
-        ).inc()
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "email": email,
-                "valid": False,
-                "reason": result["reason"],
-                "message": result["details"].get("message", "Invalid syntax"),
-                "layer": "syntax",
-            },
-        )
-
     VALIDATION_COUNTER.labels(endpoint="single", status=status, layer=layer).inc()
 
     response = {
@@ -101,6 +86,9 @@ async def validate_single(
         "status": status,
         "reason": result["reason"],
         "details": result["details"],
+        "checks": result["checks"],
+        "attributes": result["attributes"],
+        "quality_score": result["quality_score"],
     }
 
     # Fire webhook after response is sent — FastAPI BackgroundTasks manages

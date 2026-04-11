@@ -18,8 +18,8 @@ const UserDropdown = () => {
       <Portal>
         <Menu.Positioner>
           <Menu.Content>
-            <Menu.Item value="dashboard" onClick={() => navigate("/dashboard")}>
-              <FiGrid /> Dashboard
+            <Menu.Item value="analytics" onClick={() => navigate("/analytics")}>
+              <FiGrid /> Analytics
             </Menu.Item>
             <Menu.Item value="account" onClick={() => navigate("/account")}>
               <FiUser /> Account
