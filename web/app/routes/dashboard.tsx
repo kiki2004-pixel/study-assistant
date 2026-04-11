@@ -5,7 +5,7 @@ import { getMe } from "api/context";
 import { Box, Container, Grid, Heading, Text, Icon } from "@chakra-ui/react";
 import { FiCheckCircle, FiMail, FiZap, FiList } from "react-icons/fi";
 import { AuthenticatedNavbar } from "@app/components/navbar/authenticated-navbar";
-import type { UserInfo } from "types/context";
+import type { UserContext } from "types/context";
 
 interface StatCardProps {
   icon: React.ElementType;
@@ -54,7 +54,7 @@ export default function Dashboard() {
     }
   }, [auth.isLoading, auth.isAuthenticated, navigate]);
 
-  const [apiUser, setApiUser] = useState<UserInfo | null>(null);
+  const [apiUser, setApiUser] = useState<UserContext | null>(null);
 
   useEffect(() => {
     if (!auth.isAuthenticated || !auth.user?.access_token) return;
@@ -95,8 +95,16 @@ export default function Dashboard() {
           gap={6}
           mb={10}
         >
-          <StatCard icon={FiMail} label="Emails Validated" value="—" />
-          <StatCard icon={FiCheckCircle} label="Deliverable" value="—" />
+          <StatCard
+            icon={FiMail}
+            label="Emails Validated (Total)"
+            value={apiUser ? String(apiUser.stats.total_validations) : "—"}
+          />
+          <StatCard
+            icon={FiCheckCircle}
+            label="Validated This Month"
+            value={apiUser ? String(apiUser.stats.validations_this_month) : "—"}
+          />
           <StatCard icon={FiZap} label="API Calls Today" value="—" />
           <StatCard icon={FiList} label="Bulk Jobs" value="—" />
         </Grid>

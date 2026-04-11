@@ -64,7 +64,8 @@ test-e2e:
 # ── Linting & type checking ───────────────────────────────────────────────────
 
 lint:
-	cd api && uv run ruff check src
+	cd api && uv run ruff format src
+	cd web && bun run format
 
 typecheck:
 	cd web && bun run typecheck

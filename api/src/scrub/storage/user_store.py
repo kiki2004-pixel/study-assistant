@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import (
     Column,
     DateTime,
@@ -9,6 +9,7 @@ from sqlalchemy import (
     MetaData,
     String,
     Table,
+    UniqueConstraint,
     create_engine,
     select,
     func,
@@ -28,6 +29,16 @@ users = Table(
     Column("created_at", DateTime, nullable=False, server_default=func.now()),
 )
 
+user_stats = Table(
+    "scrub_user_stats",
+    metadata,
+    Column("user_id", Integer, nullable=False),
+    Column("year", Integer, nullable=False),
+    Column("month", Integer, nullable=False),
+    Column("count", Integer, nullable=False, server_default="0"),
+    UniqueConstraint("user_id", "year", "month", name="uq_user_stats_period"),
+)
+
 
 @dataclass
 class User:
@@ -36,6 +47,12 @@ class User:
     email: str | None
     name: str | None
     created_at: datetime
+
+
+@dataclass
+class UserStats:
+    total_validations: int
+    validations_this_month: int
 
 
 class UserStore:
@@ -63,3 +80,40 @@ class UserStore:
         if row is None:
             raise RuntimeError(f"Failed to upsert user with sub {sub!r}")
         return User(id=row[0], sub=row[1], email=row[2], name=row[3], created_at=row[4])
+
+    def get_stats(self, user_id: int) -> UserStats:
+        """Return total and current-month validation counts for a user."""
+        now = datetime.now(timezone.utc)
+        with self._engine.begin() as conn:
+            total = conn.execute(
+                select(func.coalesce(func.sum(user_stats.c.count), 0)).where(
+                    user_stats.c.user_id == user_id
+                )
+            ).scalar()
+
+            monthly = conn.execute(
+                select(func.coalesce(func.sum(user_stats.c.count), 0)).where(
+                    user_stats.c.user_id == user_id,
+                    user_stats.c.year == now.year,
+                    user_stats.c.month == now.month,
+                )
+            ).scalar()
+
+        return UserStats(
+            total_validations=int(total or 0),
+            validations_this_month=int(monthly or 0),
+        )
+
+    def record_validation(self, user_id: int, count: int = 1) -> None:
+        """Increment the validation counter for the current month."""
+        now = datetime.now(timezone.utc)
+        stmt = (
+            pg_insert(user_stats)
+            .values(user_id=user_id, year=now.year, month=now.month, count=count)
+            .on_conflict_do_update(
+                constraint="uq_user_stats_period",
+                set_={"count": user_stats.c.count + count},
+            )
+        )
+        with self._engine.begin() as conn:
+            conn.execute(stmt)

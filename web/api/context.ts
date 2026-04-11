@@ -1,6 +1,6 @@
 import { apiFetch } from "api/client";
-import type { UserInfo } from "types/context";
+import type { UserContext } from "types/context";
 
-export function getMe(token: string): Promise<UserInfo> {
-  return apiFetch<UserInfo>("/user/me", token);
+export function getMe(token: string): Promise<UserContext> {
+  return apiFetch<UserContext>("/context", token);
 }
