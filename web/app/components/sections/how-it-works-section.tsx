@@ -88,12 +88,7 @@ export function HowItWorksSection() {
               borderRightWidth="1px"
               borderColor="border"
             >
-              <Text
-                fontWeight="600"
-                fontSize="sm"
-                flexShrink={0}
-                w="120px"
-              >
+              <Text fontWeight="600" fontSize="sm" flexShrink={0} w="120px">
                 {feature.title}
               </Text>
               <Text fontSize="sm" color="fg.muted" lineHeight={1.6}>
