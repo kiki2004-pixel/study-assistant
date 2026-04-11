@@ -140,6 +140,7 @@ export function HeroSection() {
           </Flex>
         </Flex>
         <Heading
+          as="h1"
           fontFamily="heading"
           fontWeight="400"
           fontSize={{ base: "3xl", md: "5xl", lg: "6xl" }}
