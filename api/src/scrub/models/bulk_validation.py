@@ -30,6 +30,7 @@ class BulkValidationSummary(BaseModel):
     deduped: bool
     duplicates_removed: int
     duration_ms: int
+    request_id: str
 
 
 class BulkValidationResponse(BaseModel):

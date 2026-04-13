@@ -215,6 +215,7 @@ async def validate_bulk(
         deduped=payload.dedupe,
         duplicates_removed=duplicates_removed,
         duration_ms=duration_ms,
+        request_id=request_id,
     )
 
     if payload.response_mode == "summary_only":
@@ -236,6 +237,7 @@ async def validate_bulk(
                 "errors": summary.errors,
                 "duplicates_removed": summary.duplicates_removed,
                 "duration_ms": summary.duration_ms,
+                "request_id": summary.request_id,
             },
         },
     )
