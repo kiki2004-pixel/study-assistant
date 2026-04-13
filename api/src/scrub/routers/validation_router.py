@@ -1,11 +1,17 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
+from pydantic import EmailStr
 from time import perf_counter
 from prometheus_client import Counter, Histogram
 import logging
+import uuid
 
+from scrub.auth import verify_token
 from scrub.services.validation_service import validate_email_internal
 from scrub.services.webhook_service import dispatch_webhook
+from scrub.storage.user_store import UserStore
 from scrub.storage.webhook_store import WebhookStore
+from scrub.storage.history_store import HistoryStore
+from scrub.routers.history_router import get_history_store
 from scrub.models.validation import ValidationResponse
 from scrub.models.bulk_validation import (
     BulkValidationRequest,
@@ -21,6 +27,11 @@ logger = logging.getLogger(__name__)
 
 def get_webhook_store() -> WebhookStore:
     return WebhookStore(settings.watermark_db_url)
+
+
+def get_user_store() -> UserStore:
+    return UserStore(settings.watermark_db_url)
+
 
 
 router = APIRouter()
@@ -55,6 +66,18 @@ DUPLICATES_REMOVED_COUNTER = Counter(
 )
 
 
+def _record_usage(user_store: UserStore, user_claims: dict, count: int) -> None:
+    """Write validation count to the DB. Runs as a background task so failures
+    never surface to the caller."""
+    try:
+        user = user_store.get_or_create(
+            user_claims["sub"], user_claims.get("email"), user_claims.get("name")
+        )
+        user_store.record_validation(user.id, count=count)
+    except Exception:
+        logger.exception("Failed to record usage for sub=%r", user_claims.get("sub"))
+
+
 # Routes
 
 
@@ -67,8 +90,11 @@ async def trigger_validation():
 @router.post("/validate-single", response_model=ValidationResponse)
 async def validate_single(
     background_tasks: BackgroundTasks,
-    email: str = Query(..., description="The email address to verify"),
+    email: EmailStr = Query(..., description="The email address to verify"),
     webhook_store: WebhookStore = Depends(get_webhook_store),
+    history_store: HistoryStore = Depends(get_history_store),
+    user_claims: dict = Depends(verify_token),
+    user_store: UserStore = Depends(get_user_store),
 ):
     """
     Validate a single email address using syntax and async DNS layers.
@@ -91,6 +117,16 @@ async def validate_single(
         "quality_score": result["quality_score"],
     }
 
+    # Persist to history (non-blocking)
+    background_tasks.add_task(
+        history_store.save,
+        email=email,
+        is_valid=result["ok"],
+        quality_score=result.get("quality_score"),
+        checks=result.get("checks"),
+        attributes=result.get("attributes"),
+    )
+
     # Fire webhook after response is sent — FastAPI BackgroundTasks manages
     # execution safely, unlike asyncio.create_task() which is unbounded
     background_tasks.add_task(
@@ -108,6 +144,8 @@ async def validate_single(
         },
     )
 
+    background_tasks.add_task(_record_usage, user_store, user_claims, 1)
+
     return response
 
 
@@ -116,12 +154,16 @@ async def validate_bulk(
     background_tasks: BackgroundTasks,
     payload: BulkValidationRequest,
     webhook_store: WebhookStore = Depends(get_webhook_store),
+    history_store: HistoryStore = Depends(get_history_store),
+    user_claims: dict = Depends(verify_token),
+    user_store: UserStore = Depends(get_user_store),
 ):
     """
     Validates up to 30,000 emails in a single request.
     Leverages async concurrency for high-performance DNS lookups.
     """
     start_time = perf_counter()
+    request_id = str(uuid.uuid4())
 
     emails = payload.emails or []
     duplicates_removed = 0
@@ -145,6 +187,7 @@ async def validate_bulk(
     processed = len(emails)
 
     results: list[BulkEmailResult] = []
+    history_entries: list[dict] = []
     valid_count = 0
     invalid_count = 0
     error_count = 0
@@ -167,6 +210,7 @@ async def validate_bulk(
                     layer="internal",
                     details={"message": "Unexpected validation error."},
                 )
+                history_entries.append({"email": email, "is_valid": False, "request_id": request_id})
                 if payload.response_mode in ("all", "invalid_only"):
                     results.append(item)
                 continue
@@ -187,6 +231,14 @@ async def validate_bulk(
                     layer=layer,
                     details=r.get("details") or {},
                 )
+                history_entries.append({
+                    "email": email,
+                    "is_valid": False,
+                    "quality_score": r.get("quality_score"),
+                    "checks": r.get("checks"),
+                    "attributes": r.get("attributes"),
+                    "request_id": request_id,
+                })
                 if payload.response_mode in ("all", "invalid_only"):
                     results.append(item)
                 continue
@@ -201,6 +253,14 @@ async def validate_bulk(
                 layer=layer,
                 details=r.get("details") or {},
             )
+            history_entries.append({
+                "email": email,
+                "is_valid": True,
+                "quality_score": r.get("quality_score"),
+                "checks": r.get("checks"),
+                "attributes": r.get("attributes"),
+                "request_id": request_id,
+            })
             if payload.response_mode == "all":
                 results.append(item)
 
@@ -217,6 +277,10 @@ async def validate_bulk(
         duration_ms=duration_ms,
         request_id=request_id,
     )
+
+    # Persist all results to history (non-blocking)
+    background_tasks.add_task(history_store.save_many, history_entries)
+    background_tasks.add_task(_record_usage, user_store, user_claims, processed)
 
     if payload.response_mode == "summary_only":
         return BulkValidationResponse(summary=summary, results=None)

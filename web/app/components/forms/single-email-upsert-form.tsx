@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useAuth } from "react-oidc-context";
 import { Button, Field, Flex, Input, Spinner, Text } from "@chakra-ui/react";
 import { validateEmail } from "api/validation";
 import { ValidationResultCard } from "@app/components/cards/validation-result-card";
 import type { ValidationResult } from "types/validation";
 
 const SingleEmailUpsertForm = () => {
+  const auth = useAuth();
   const [email, setEmail] = useState("");
   const [result, setResult] = useState<ValidationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -15,8 +17,14 @@ const SingleEmailUpsertForm = () => {
     setError(null);
     setResult(null);
     setLoading(true);
+    const token = auth.user?.access_token;
+    if (!token) {
+      setError("Not authenticated.");
+      setLoading(false);
+      return;
+    }
     try {
-      const res = await validateEmail(email);
+      const res = await validateEmail(email, token);
       setResult(res);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Validation failed.");

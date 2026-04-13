@@ -1,8 +1,10 @@
-import { apiPost } from "api/client";
+import { apiFetch } from "api/client";
 import type { ValidationResult } from "types/validation";
 
-export function validateEmail(email: string): Promise<ValidationResult> {
-  return apiPost<ValidationResult>(
+export function validateEmail(email: string, token: string): Promise<ValidationResult> {
+  return apiFetch<ValidationResult>(
     `/validation/validate-single?email=${encodeURIComponent(email)}`,
+    token,
+    { method: "POST" },
   );
 }
