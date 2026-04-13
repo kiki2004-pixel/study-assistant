@@ -20,7 +20,9 @@ if settings.sentry_dsn:
     )
 
 celery_app = Celery(
-    __name__, broker=settings.celery_broker_url, backend=settings.celery_broker_url
+    __name__,
+    broker=settings.celery_broker_url,
+    backend=settings.celery_result_backend,
 )
 
 
