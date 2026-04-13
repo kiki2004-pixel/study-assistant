@@ -14,7 +14,17 @@ SRC_PATH = PROJECT_ROOT / "src"
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))
 
-from scrub.storage.watermark_store import metadata  # noqa: E402
+from scrub.storage.watermark_store import metadata as watermark_metadata  # noqa: E402
+from scrub.storage.webhook_store import metadata as webhook_metadata  # noqa: E402
+from scrub.storage.user_store import metadata as user_metadata  # noqa: E402
+from scrub.storage.history_store import metadata as history_metadata  # noqa: E402
+from sqlalchemy import MetaData  # noqa: E402
+
+# Combine all store metadata so Alembic autogenerate covers every table.
+metadata = MetaData()
+for _m in (watermark_metadata, webhook_metadata, user_metadata, history_metadata):
+    for table in _m.sorted_tables:
+        table.to_metadata(metadata)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -34,7 +44,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = metadata
+target_metadata = metadata  # combined across all stores
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

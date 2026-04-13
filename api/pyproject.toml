@@ -22,11 +22,8 @@ dependencies = [
     "pillow>=11.2.1",
     "listmonk>=0.3.9",
     "email-validator>=2.3.0",
-<<<<<<< HEAD:api/pyproject.toml
     "pyjwt[cryptography]>=2.9.0",
     "cryptography>=41.0.0",
-=======
->>>>>>> a814b1f (fix(tests): move pytest-mock to dev deps, use temp DB in tests, add watermarks.db to gitignore):pyproject.toml
 ]
 
 [dependency-groups]

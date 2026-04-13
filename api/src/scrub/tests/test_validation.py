@@ -9,16 +9,33 @@ os.environ["LISTMONK_PASS"] = "test"
 os.environ["POSTMARK_WEBHOOK_SECRET"] = "test"
 
 # 2. Imports
-from main import app
+from main import app  # noqa: E402
+from scrub.storage.history_store import HistoryStore  # noqa: E402
+from scrub.storage.webhook_store import WebhookStore  # noqa: E402
+from scrub.routers.history_router import get_history_store  # noqa: E402
+from scrub.routers.validation_router import get_webhook_store  # noqa: E402
 
 # Target path for mocking the DNS service within the validation logic
 MOCK_DNS_PATH = "scrub.services.validation_service.check_dns_records"
 
 
 @pytest.fixture(scope="module")
-def client():
-    """Reusable TestClient instance."""
-    return TestClient(app)
+def client(tmp_path_factory):
+    """Reusable TestClient instance with all DB dependencies pointed at temp SQLite."""
+    db_path = tmp_path_factory.mktemp("db") / "test.db"
+    db_url = f"sqlite:///{db_path}"
+
+    history_store = HistoryStore(db_url)
+    history_store.init_schema()
+
+    webhook_store = WebhookStore(db_url)
+    webhook_store.init_schema()
+
+    app.dependency_overrides[get_history_store] = lambda: history_store
+    app.dependency_overrides[get_webhook_store] = lambda: webhook_store
+    yield TestClient(app)
+    app.dependency_overrides.pop(get_history_store, None)
+    app.dependency_overrides.pop(get_webhook_store, None)
 
 
 # 3. DNS-Based Single Validation Tests
