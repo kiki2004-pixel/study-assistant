@@ -1,6 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
-from functools import lru_cache
-from pydantic import EmailStr
+from time import perf_counter
+from prometheus_client import Counter, Histogram
+import logging
 import uuid
 
 from scrub.auth import verify_any_auth
