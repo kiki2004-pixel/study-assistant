@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from pydantic import EmailStr
 from time import perf_counter
 from prometheus_client import Counter, Histogram
