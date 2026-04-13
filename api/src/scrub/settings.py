@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     listmonk_list_id: str = ""
     listmonk_exclude_name_substrings: str = ""
 
+    # Sentry
+    sentry_dsn: str = ""
+    sentry_environment: str = "local"
+
     # Worker / Celery Settings
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_result_backend: str = "redis://localhost:6379/0"

@@ -1,12 +1,24 @@
 import time
 
+import sentry_sdk
 from celery.app import Celery
 from email_validator import validate_email
+from sentry_sdk.integrations.celery import CeleryIntegration
 
 from scrub.services.Listmonk import Listmonk
 from scrub.settings import Settings
 
 settings = Settings()
+
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.sentry_environment,
+        integrations=[CeleryIntegration()],
+        traces_sample_rate=0.05,
+        send_default_pii=False,
+    )
+
 celery_app = Celery(
     __name__, broker=settings.celery_broker_url, backend=settings.celery_broker_url
 )

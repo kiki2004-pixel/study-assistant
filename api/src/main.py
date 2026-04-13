@@ -1,6 +1,9 @@
 import tomllib
 from pathlib import Path
 
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -14,6 +17,16 @@ from scrub.storage.user_store import UserStore
 from scrub.storage.history_store import HistoryStore
 from scrub.settings import settings
 from prometheus_fastapi_instrumentator import Instrumentator
+
+
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.sentry_environment,
+        integrations=[FastApiIntegration(), SqlalchemyIntegration()],
+        traces_sample_rate=0.05,
+        send_default_pii=False,
+    )
 
 
 @asynccontextmanager
