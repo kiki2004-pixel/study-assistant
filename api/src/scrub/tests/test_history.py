@@ -9,6 +9,7 @@ os.environ.setdefault("LISTMONK_URL", "http://localhost")
 os.environ.setdefault("LISTMONK_USER", "test")
 os.environ.setdefault("LISTMONK_PASS", "test")
 os.environ.setdefault("POSTMARK_WEBHOOK_SECRET", "test")
+os.environ.setdefault("API_KEY", "test-api-key")
 
 from scrub.storage.history_store import HistoryStore  # noqa: E402
 from scrub.routers.history_router import get_history_store  # noqa: E402
@@ -38,7 +39,7 @@ def store(db_path):
 def client(store):
     """TestClient with history store dependency overridden to use temp SQLite."""
     app.dependency_overrides[get_history_store] = lambda: store
-    yield TestClient(app)
+    yield TestClient(app, headers={"X-API-Key": "test-api-key"})
     app.dependency_overrides.pop(get_history_store, None)
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
+from fastapi.security import APIKeyHeader
 from typing import Optional
 
 from scrub.models.history import DeleteHistoryResponse, HistoryEntry, HistoryPage
@@ -8,6 +9,14 @@ from scrub.storage.history_store import HistoryRecord, HistoryStore
 from scrub.settings import settings
 
 router = APIRouter()
+
+_API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=True)
+
+
+def _verify_api_key(api_key: str = Security(_API_KEY_HEADER)) -> str:
+    if api_key != settings.api_key:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    return api_key
 
 
 def get_history_store() -> HistoryStore:
@@ -34,6 +43,7 @@ def list_history(
     page_size: int = Query(100, ge=1, le=1000),
     is_valid: Optional[bool] = Query(None),
     store: HistoryStore = Depends(get_history_store),
+    _: str = Depends(_verify_api_key),
 ):
     """Return paginated validation history, newest first."""
     records, total = store.get_history(page=page, page_size=page_size, is_valid=is_valid)
@@ -49,6 +59,7 @@ def list_history(
 def get_bulk_history(
     request_id: str,
     store: HistoryStore = Depends(get_history_store),
+    _: str = Depends(_verify_api_key),
 ):
     """Return all validation results for a bulk job."""
     records = store.get_by_request_id(request_id)
@@ -61,6 +72,7 @@ def get_bulk_history(
 def get_email_history(
     email: str,
     store: HistoryStore = Depends(get_history_store),
+    _: str = Depends(_verify_api_key),
 ):
     """Return validation history for a specific email address."""
     records = store.get_by_email(email)
@@ -73,6 +85,7 @@ def get_email_history(
 def delete_email_history(
     email: str,
     store: HistoryStore = Depends(get_history_store),
+    _: str = Depends(_verify_api_key),
 ):
     """Delete all history for an email address (GDPR right-to-erasure)."""
     deleted = store.delete_by_email(email)
