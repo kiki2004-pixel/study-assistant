@@ -1,5 +1,4 @@
 import os
-from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 
 # 1. Setup Environment for Settings initialization
@@ -12,10 +11,11 @@ os.environ["SSRF_PROTECTION_ENABLED"] = "false"
 from main import app
 from scrub.settings import settings
 from scrub.storage.webhook_store import WebhookStore
+from scrub.storage.history_store import HistoryStore
 
-# Initialise webhook schema before tests run — TestClient does not
-# trigger FastAPI lifespan, so init_schema() won't run automatically
+# Initialise schemas before tests run — TestClient does not trigger lifespan
 WebhookStore(settings.watermark_db_url).init_schema()
+HistoryStore(settings.watermark_db_url).init_schema()
 
 # Mock Paths for Service and Client
 MOCK_DNS_PATH = "scrub.services.validation_service.check_dns_records"
