@@ -97,16 +97,16 @@ def test_validate_bulk_summary_e2e(mock_auth, mocker):
 
 
 def test_validate_single_requires_auth():
-    """Verifies: validate-single returns 403 when no token is provided."""
+    """Verifies: validate-single returns 401 when no token is provided."""
     response = client.post("/validation/validate-single?email=test@example.com")
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 def test_validate_bulk_requires_auth():
-    """Verifies: validate-bulk returns 403 when no token is provided."""
+    """Verifies: validate-bulk returns 401 when no token is provided."""
     payload = {"emails": ["a@test.com"], "response_mode": "summary_only"}
     response = client.post("/validation/validate-bulk", json=payload)
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 # ---------------------------------------------------------------------------
