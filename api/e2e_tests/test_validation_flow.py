@@ -17,10 +17,10 @@ os.close(_fd)
 os.environ["WATERMARK_DB_URL"] = f"sqlite:///{_db_path}"
 atexit.register(lambda: os.path.exists(_db_path) and os.remove(_db_path))
 
-from main import app
-from scrub.settings import settings
-from scrub.storage.webhook_store import WebhookStore
-from scrub.storage.history_store import HistoryStore
+from main import app  # noqa: E402
+from scrub.settings import settings  # noqa: E402
+from scrub.storage.webhook_store import WebhookStore  # noqa: E402
+from scrub.storage.history_store import HistoryStore  # noqa: E402
 
 # Initialise schemas before tests run — TestClient does not trigger lifespan
 WebhookStore(settings.watermark_db_url).init_schema()
