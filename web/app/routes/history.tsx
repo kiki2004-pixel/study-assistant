@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
-import { Box, Button, Flex, Heading, Input, Spinner, Table, Text } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Flex,
+  Heading,
+  Input,
+  Spinner,
+  Table,
+  Text,
+} from "@chakra-ui/react";
 import { getHistory, type HistoryParams } from "api/history";
 import type { HistoryPage } from "types/history";
 import { StatusBadge } from "@app/components/cards/status-badge";
@@ -15,7 +24,9 @@ export default function HistorySettings() {
   const [data, setData] = useState<HistoryPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [filterValid, setFilterValid] = useState<boolean | undefined>(undefined);
+  const [filterValid, setFilterValid] = useState<boolean | undefined>(
+    undefined,
+  );
   const [emailSearch, setEmailSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [activeBulkId, setActiveBulkId] = useState<string | null>(null);
