@@ -6,6 +6,7 @@ const API_BASE = import.meta.env.DEV
 
 export async function apiPost<T>(
   path: string,
+  token: string,
   options: RequestInit = {},
 ): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -13,6 +14,7 @@ export async function apiPost<T>(
     ...options,
     headers: {
       "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
       ...(options.headers ?? {}),
     },
   });
