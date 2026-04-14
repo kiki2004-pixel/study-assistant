@@ -10,7 +10,7 @@ import ApiDropdown from "../dropdowns/api-dropdown";
 
 const NAV_LINKS = [
   { label: "Single", href: "/dashboard" },
-  { label: "Lists", href: "/lists" },
+  { label: "History", href: "/lists" },
   { label: "Integrations", href: "/integrations" },
   { label: "API", href: "/api", dropdown: true },
 ];
