@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { label: "General", href: "/settings/general" },
   { label: "Account", href: "/settings/account" },
   { label: "Analytics", href: "/settings/analytics" },
+  { label: "History", href: "/settings/history" },
 ];
 
 export default function Settings() {

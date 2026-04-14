@@ -74,6 +74,16 @@ const customConfig = defineConfig({
         "accent.contrast": {
           value: { base: "#111111", _dark: "#111111" },
         },
+        // Validation state colours (from DESIGN.md)
+        "valid.bg": { value: { base: "#DCFCE7", _dark: "#14532D" } },
+        "valid.fg": { value: { base: "#15803D", _dark: "#86EFAC" } },
+        "valid.border": { value: { base: "#BBF7D0", _dark: "#166534" } },
+        "invalid.bg": { value: { base: "#FEE2E2", _dark: "#450A0A" } },
+        "invalid.fg": { value: { base: "#B91C1C", _dark: "#FCA5A5" } },
+        "invalid.border": { value: { base: "#FECACA", _dark: "#7F1D1D" } },
+        "risky.bg": { value: { base: "#FEF9C3", _dark: "#422006" } },
+        "risky.fg": { value: { base: "#854D0E", _dark: "#FDE68A" } },
+        "risky.border": { value: { base: "#FDE68A", _dark: "#713F12" } },
       },
     },
   },
