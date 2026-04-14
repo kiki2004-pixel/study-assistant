@@ -14,11 +14,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { AuthenticatedNavbar } from "@app/components/navbar/authenticated-navbar";
-import {
-  getBulkHistory,
-  getHistory,
-  type HistoryParams,
-} from "api/history";
+import { getBulkHistory, getHistory, type HistoryParams } from "api/history";
 import type { HistoryEntry, HistoryPage } from "types/history";
 
 const PAGE_SIZE = 20;
@@ -258,13 +254,7 @@ export default function Lists() {
         </Box>
 
         {/* Filters */}
-        <Flex
-          gap={3}
-          mb={6}
-          align="center"
-          wrap="wrap"
-          justify="space-between"
-        >
+        <Flex gap={3} mb={6} align="center" wrap="wrap" justify="space-between">
           {/* Valid / Invalid toggle */}
           <Flex gap={2}>
             {(
