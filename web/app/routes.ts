@@ -8,19 +8,11 @@ import {
 export default [
   index("routes/home.tsx"),
   route("auth/callback", "routes/auth.callback.tsx"),
-  layout("routes/_authenticated.tsx", [
-    route("dashboard", "routes/dashboard.tsx"),
-    route("lists", "routes/lists.tsx"),
-    route("integrations", "routes/integrations.tsx"),
-    route("integrations/listmonk", "routes/integrations.listmonk.tsx"),
-    route("integrations/listmonk/:id", "routes/integrations.listmonk.$id.tsx"),
-    route("api/docs", "routes/docs.tsx"),
-    route("api/keys", "routes/api.tsx"),
-    route("settings", "routes/settings.tsx", [
-      index("routes/settings.index.tsx"),
-      route("general", "routes/settings.general.tsx"),
-      route("account", "routes/settings.account.tsx"),
-      route("analytics", "routes/settings.analytics.tsx"),
-    ]),
+  route("settings", "routes/settings.tsx", [
+    index("routes/settings.index.tsx"),
+    route("general", "routes/settings.general.tsx"),
+    route("account", "routes/settings.account.tsx"),
+    route("analytics", "routes/settings.analytics.tsx"),
+    route("history", "routes/history.tsx"),
   ]),
 ] satisfies RouteConfig;
