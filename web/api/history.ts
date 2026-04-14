@@ -1,11 +1,5 @@
 import { apiFetch } from "api/client";
-import type { HistoryEntry, HistoryPage } from "types/history";
-
-export interface HistoryParams {
-  page?: number;
-  page_size?: number;
-  is_valid?: boolean;
-}
+import type { HistoryEntry, HistoryPage, HistoryParams } from "types/history";
 
 export function getHistory(
   token: string,

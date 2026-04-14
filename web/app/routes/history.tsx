@@ -10,8 +10,8 @@ import {
   Table,
   Text,
 } from "@chakra-ui/react";
-import { getHistory, type HistoryParams } from "api/history";
-import type { HistoryPage } from "types/history";
+import { getHistory } from "api/history";
+import type { HistoryPage, HistoryParams } from "types/history";
 import { StatusBadge } from "@app/components/cards/status-badge";
 import { EmptyStateCard } from "@app/components/cards/empty-state-card";
 import { BulkDrawerCard } from "@app/components/cards/bulk-drawer-card";
