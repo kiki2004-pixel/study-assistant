@@ -1,4 +1,7 @@
+import atexit
 import os
+import tempfile
+
 from fastapi.testclient import TestClient
 
 # 1. Setup Environment for Settings initialization
@@ -7,6 +10,12 @@ os.environ["LISTMONK_USER"] = "test"
 os.environ["LISTMONK_PASS"] = "test"
 os.environ["API_KEY"] = "test-api-key"
 os.environ["SSRF_PROTECTION_ENABLED"] = "false"
+
+# Use a temp SQLite file so tests don't mutate a real DB or leak state between runs
+_fd, _db_path = tempfile.mkstemp(suffix=".db")
+os.close(_fd)
+os.environ["WATERMARK_DB_URL"] = f"sqlite:///{_db_path}"
+atexit.register(lambda: os.path.exists(_db_path) and os.remove(_db_path))
 
 from main import app
 from scrub.settings import settings
