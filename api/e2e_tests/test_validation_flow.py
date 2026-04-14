@@ -1,6 +1,7 @@
 import atexit
 import os
 import tempfile
+import pytest
 from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
@@ -29,13 +30,6 @@ from scrub.routers.validation_router import get_user_store  # noqa: E402
 WebhookStore(settings.watermark_db_url).init_schema()
 HistoryStore(settings.watermark_db_url).init_schema()
 
-# Override auth and user store — tests run without Zitadel or a real DB
-async def _mock_verify_token():
-    return {"sub": "test-user", "email": "test@example.com", "name": "Test"}
-
-app.dependency_overrides[verify_token] = _mock_verify_token
-app.dependency_overrides[get_user_store] = lambda: MagicMock()
-
 # Mock Paths for Service and Client
 MOCK_DNS_PATH = "scrub.services.validation_service.check_dns_records"
 MOCK_LM_REQUEST = "scrub.services.listmonk_client.ListmonkClient._request"
@@ -44,11 +38,24 @@ client = TestClient(app)
 API_HEADERS = {"X-API-Key": "test-api-key"}
 
 
+async def _mock_verify_token():
+    return {"sub": "test-user", "email": "test@example.com", "name": "Test"}
+
+
+@pytest.fixture(autouse=False)
+def mock_auth():
+    """Override auth and user store for tests that don't test auth itself."""
+    app.dependency_overrides[verify_token] = _mock_verify_token
+    app.dependency_overrides[get_user_store] = lambda: MagicMock()
+    yield
+    app.dependency_overrides.clear()
+
+
 # ---------------------------------------------------------------------------
 # 1. API & DNS Logic Tests
 # ---------------------------------------------------------------------------
 
-def test_validate_single_success_e2e(mocker):
+def test_validate_single_success_e2e(mock_auth, mocker):
     """Verifies: API -> DNS Service -> Deliverable status."""
     mocker.patch(
         MOCK_DNS_PATH,
@@ -63,7 +70,7 @@ def test_validate_single_success_e2e(mocker):
     assert response.json()["status"] == "deliverable"
 
 
-def test_validate_single_dns_failure_e2e(mocker):
+def test_validate_single_dns_failure_e2e(mock_auth, mocker):
     """Verifies: API -> DNS Service -> Undeliverable status."""
     mocker.patch(
         MOCK_DNS_PATH,
@@ -78,7 +85,7 @@ def test_validate_single_dns_failure_e2e(mocker):
     assert response.json()["status"] == "undeliverable"
 
 
-def test_validate_bulk_summary_e2e(mocker):
+def test_validate_bulk_summary_e2e(mock_auth, mocker):
     """Verifies: Bulk API handles multiple emails and DNS mocking."""
     mocker.patch(
         MOCK_DNS_PATH, return_value={"is_valid": True, "reason": "OK", "details": {}}
@@ -87,6 +94,19 @@ def test_validate_bulk_summary_e2e(mocker):
     response = client.post("/validation/validate-bulk", json=payload)
     assert response.status_code == 200
     assert response.json()["summary"]["total"] == 2
+
+
+def test_validate_single_requires_auth():
+    """Verifies: validate-single returns 403 when no token is provided."""
+    response = client.post("/validation/validate-single?email=test@example.com")
+    assert response.status_code == 403
+
+
+def test_validate_bulk_requires_auth():
+    """Verifies: validate-bulk returns 403 when no token is provided."""
+    payload = {"emails": ["a@test.com"], "response_mode": "summary_only"}
+    response = client.post("/validation/validate-bulk", json=payload)
+    assert response.status_code == 403
 
 
 # ---------------------------------------------------------------------------
