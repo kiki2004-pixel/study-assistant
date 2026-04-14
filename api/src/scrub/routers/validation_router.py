@@ -1,4 +1,5 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
+from functools import lru_cache
 from pydantic import EmailStr
 from time import perf_counter
 from prometheus_client import Counter, Histogram
@@ -29,6 +30,7 @@ def get_webhook_store() -> WebhookStore:
     return WebhookStore(settings.watermark_db_url)
 
 
+@lru_cache
 def get_user_store() -> UserStore:
     return UserStore(settings.watermark_db_url)
 
