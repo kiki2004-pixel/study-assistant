@@ -1,12 +1,6 @@
 import { apiFetch } from "api/client";
 import type { HistoryEntry, HistoryPage } from "types/history";
 
-const API_KEY = import.meta.env.VITE_API_KEY ?? "";
-
-function apiKeyHeader() {
-  return { "X-API-Key": API_KEY };
-}
-
 export interface HistoryParams {
   page?: number;
   page_size?: number;
@@ -22,9 +16,7 @@ export function getHistory(
   if (params.page_size) query.set("page_size", String(params.page_size));
   if (params.is_valid !== undefined)
     query.set("is_valid", String(params.is_valid));
-  return apiFetch<HistoryPage>(`/validation/history?${query}`, token, {
-    headers: apiKeyHeader(),
-  });
+  return apiFetch<HistoryPage>(`/validation/history?${query}`, token);
 }
 
 export function getEmailHistory(
@@ -34,7 +26,6 @@ export function getEmailHistory(
   return apiFetch<HistoryEntry[]>(
     `/validation/history/${encodeURIComponent(email)}`,
     token,
-    { headers: apiKeyHeader() },
   );
 }
 
@@ -45,6 +36,5 @@ export function getBulkHistory(
   return apiFetch<HistoryEntry[]>(
     `/validation/history/bulk/${requestId}`,
     token,
-    { headers: apiKeyHeader() },
   );
 }

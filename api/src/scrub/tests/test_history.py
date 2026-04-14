@@ -12,12 +12,9 @@ os.environ.setdefault("LISTMONK_PASS", "test")
 os.environ.setdefault("POSTMARK_WEBHOOK_SECRET", "test")
 os.environ.setdefault("API_KEY", "test-api-key")
 
-from scrub.models.history_store import HistoryStore  # noqa: E402
-from scrub.repositories.history_repository import (
-    HistoryRepository,
-    get_history_repository,
-)  # noqa: E402
-from scrub.auth import verify_api_key  # noqa: E402
+from scrub.storage.history_store import HistoryStore  # noqa: E402
+from scrub.routers.history_router import get_history_store  # noqa: E402
+from scrub.auth import verify_token  # noqa: E402
 from main import app  # noqa: E402
 
 
@@ -49,16 +46,13 @@ _FAKE_CALLER = {
 
 
 @pytest.fixture()
-def client(db_path, store):
-    """TestClient with history repository dependency overridden to use temp SQLite.
-    `store` fixture is included to ensure the schema is initialised before requests."""
-    app.dependency_overrides[get_history_repository] = lambda: HistoryRepository(
-        db_path
-    )
-    app.dependency_overrides[verify_api_key] = lambda: _FAKE_CALLER
-    yield TestClient(app, headers={"X-API-Key": "test-api-key"})
-    app.dependency_overrides.pop(get_history_repository, None)
-    app.dependency_overrides.pop(verify_api_key, None)
+def client(store):
+    """TestClient with history store and auth dependencies overridden."""
+    app.dependency_overrides[get_history_store] = lambda: store
+    app.dependency_overrides[verify_token] = lambda: {"sub": "test-user"}
+    yield TestClient(app)
+    app.dependency_overrides.pop(get_history_store, None)
+    app.dependency_overrides.pop(verify_token, None)
 
 
 # ---------------------------------------------------------------------------
