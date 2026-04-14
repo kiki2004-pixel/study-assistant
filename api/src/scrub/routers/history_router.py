@@ -1,22 +1,14 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Security
-from fastapi.security import APIKeyHeader
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 
+from scrub.auth import verify_token
 from scrub.models.history import DeleteHistoryResponse, HistoryEntry, HistoryPage
 from scrub.storage.history_store import HistoryRecord, HistoryStore
 from scrub.settings import settings
 
 router = APIRouter()
-
-_API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=True)
-
-
-def _verify_api_key(api_key: str = Security(_API_KEY_HEADER)) -> str:
-    if api_key != settings.api_key:
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    return api_key
 
 
 def get_history_store() -> HistoryStore:
@@ -38,12 +30,12 @@ def _to_entry(r: HistoryRecord) -> HistoryEntry:
 
 
 @router.get("", response_model=HistoryPage)
-def list_history(
+async def list_history(
     page: int = Query(1, ge=1),
     page_size: int = Query(100, ge=1, le=1000),
     is_valid: Optional[bool] = Query(None),
     store: HistoryStore = Depends(get_history_store),
-    _: str = Depends(_verify_api_key),
+    _: dict = Depends(verify_token),
 ):
     """Return paginated validation history, newest first."""
     records, total = store.get_history(page=page, page_size=page_size, is_valid=is_valid)
@@ -56,10 +48,10 @@ def list_history(
 
 
 @router.get("/bulk/{request_id}", response_model=list[HistoryEntry])
-def get_bulk_history(
+async def get_bulk_history(
     request_id: str,
     store: HistoryStore = Depends(get_history_store),
-    _: str = Depends(_verify_api_key),
+    _: dict = Depends(verify_token),
 ):
     """Return all validation results for a bulk job."""
     records = store.get_by_request_id(request_id)
@@ -69,10 +61,10 @@ def get_bulk_history(
 
 
 @router.get("/{email}", response_model=list[HistoryEntry])
-def get_email_history(
+async def get_email_history(
     email: str,
     store: HistoryStore = Depends(get_history_store),
-    _: str = Depends(_verify_api_key),
+    _: dict = Depends(verify_token),
 ):
     """Return validation history for a specific email address."""
     records = store.get_by_email(email)
@@ -82,10 +74,10 @@ def get_email_history(
 
 
 @router.delete("/{email}", response_model=DeleteHistoryResponse)
-def delete_email_history(
+async def delete_email_history(
     email: str,
     store: HistoryStore = Depends(get_history_store),
-    _: str = Depends(_verify_api_key),
+    _: dict = Depends(verify_token),
 ):
     """Delete all history for an email address (GDPR right-to-erasure)."""
     deleted = store.delete_by_email(email)
