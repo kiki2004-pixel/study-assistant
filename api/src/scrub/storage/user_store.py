@@ -35,7 +35,7 @@ user_stats = Table(
     Column("user_id", Integer, nullable=False),
     Column("year", Integer, nullable=False),
     Column("month", Integer, nullable=False),
-    Column("count", Integer, nullable=False, server_default="0"),
+    Column("email_validations", Integer, nullable=False, server_default="0"),
     UniqueConstraint("user_id", "year", "month", name="uq_user_stats_period"),
 )
 
@@ -86,13 +86,15 @@ class UserStore:
         now = datetime.now(timezone.utc)
         with self._engine.begin() as conn:
             total = conn.execute(
-                select(func.coalesce(func.sum(user_stats.c.count), 0)).where(
-                    user_stats.c.user_id == user_id
-                )
+                select(
+                    func.coalesce(func.sum(user_stats.c.email_validations), 0)
+                ).where(user_stats.c.user_id == user_id)
             ).scalar()
 
             monthly = conn.execute(
-                select(func.coalesce(func.sum(user_stats.c.count), 0)).where(
+                select(
+                    func.coalesce(func.sum(user_stats.c.email_validations), 0)
+                ).where(
                     user_stats.c.user_id == user_id,
                     user_stats.c.year == now.year,
                     user_stats.c.month == now.month,
@@ -109,10 +111,10 @@ class UserStore:
         now = datetime.now(timezone.utc)
         stmt = (
             pg_insert(user_stats)
-            .values(user_id=user_id, year=now.year, month=now.month, count=count)
+            .values(user_id=user_id, year=now.year, month=now.month, email_validations=count)
             .on_conflict_do_update(
                 constraint="uq_user_stats_period",
-                set_={"count": user_stats.c.count + count},
+                set_={"email_validations": user_stats.c.email_validations + count},
             )
         )
         with self._engine.begin() as conn:
