@@ -7,11 +7,27 @@ set -euo pipefail
 COMPONENT="$1"
 VERSIONS_FILE="$(git rev-parse --show-toplevel)/VERSIONS"
 
+# Read what's currently in the file (may have been manually edited)
 CURRENT=$(grep "^${COMPONENT}=" "$VERSIONS_FILE" | cut -d= -f2)
 
-CUR_YEAR=$(echo "$CURRENT" | cut -d. -f1)
-CUR_MONTH=$(echo "$CURRENT" | cut -d. -f2)
-CUR_BUILD=$(echo "$CURRENT" | cut -d. -f3)
+# Read the last auto-bumped version from git history — immune to manual edits
+LAST_BUMP_HASH=$(git log --grep="^chore(release): bump versions$" --format="%H" -n1 2>/dev/null || true)
+if [[ -n "$LAST_BUMP_HASH" ]]; then
+  LAST_BUMPED=$(git show "${LAST_BUMP_HASH}:VERSIONS" | grep "^${COMPONENT}=" | cut -d= -f2 || echo "")
+else
+  LAST_BUMPED=""
+fi
+
+# Use whichever is higher — prevents generating a version <= any previously published one
+BASE="$CURRENT"
+if [[ -n "$LAST_BUMPED" && "$LAST_BUMPED" > "$BASE" ]]; then
+  echo "::warning::${COMPONENT} VERSIONS was manually set to ${CURRENT} (below last bumped ${LAST_BUMPED}). Using ${LAST_BUMPED} as base." >&2
+  BASE="$LAST_BUMPED"
+fi
+
+CUR_YEAR=$(echo "$BASE" | cut -d. -f1)
+CUR_MONTH=$(echo "$BASE" | cut -d. -f2)
+CUR_BUILD=$(echo "$BASE" | cut -d. -f3)
 
 NOW_YEAR=$(date -u +%Y)
 NOW_MONTH=$(date -u +%m)

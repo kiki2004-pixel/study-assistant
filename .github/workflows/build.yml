@@ -81,8 +81,38 @@ jobs:
           echo "api_changed=${api_changed}" >> "$GITHUB_OUTPUT"
           echo "web_changed=${web_changed}" >> "$GITHUB_OUTPUT"
 
-  build-api:
+  validate:
     needs: detect
+    if: needs.detect.outputs.api_changed == 'true' || needs.detect.outputs.web_changed == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check API tag does not already exist
+        if: needs.detect.outputs.api_changed == 'true'
+        run: |
+          TAG="ghcr.io/nerd-zero/scrub-api:${{ needs.detect.outputs.api_tag }}"
+          if docker manifest inspect "$TAG" > /dev/null 2>&1; then
+            echo "ERROR: Image tag $TAG already exists. Refusing to overwrite a published image."
+            exit 1
+          fi
+
+      - name: Check web tag does not already exist
+        if: needs.detect.outputs.web_changed == 'true'
+        run: |
+          TAG="ghcr.io/nerd-zero/scrub:${{ needs.detect.outputs.web_tag }}"
+          if docker manifest inspect "$TAG" > /dev/null 2>&1; then
+            echo "ERROR: Image tag $TAG already exists. Refusing to overwrite a published image."
+            exit 1
+          fi
+
+  build-api:
+    needs: [detect, validate]
     if: needs.detect.outputs.api_changed == 'true'
     runs-on: ubuntu-24.04
     steps:
@@ -111,7 +141,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   build-web:
-    needs: detect
+    needs: [detect, validate]
     if: needs.detect.outputs.web_changed == 'true'
     runs-on: ubuntu-24.04
     steps:
