@@ -9,8 +9,8 @@ import {
   Spinner,
   Text,
 } from "@chakra-ui/react";
-import { getHistory, getEmailHistory, getBulkHistory } from "api/history";
-import type { HistoryEntry, HistoryPage, HistoryParams } from "types/history";
+import { getHistory } from "api/history";
+import type { HistoryPage, HistoryParams } from "types/history";
 import { StatusBadge } from "@app/components/badges/status-badge";
 import { EmptyStateCard } from "@app/components/cards/empty-state-card";
 import { BulkDrawerCard } from "@app/components/cards/bulk-drawer-card";
@@ -34,10 +34,7 @@ export default function HistorySettings() {
     undefined,
   );
   const [searchInput, setSearchInput] = useState("");
-  const [searchResults, setSearchResults] = useState<HistoryEntry[] | null>(
-    null,
-  );
-  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState<HistoryParams | null>(null);
   const [activeBulkId, setActiveBulkId] = useState<string | null>(null);
 
   const token = auth.user?.access_token ?? "";
@@ -55,15 +52,17 @@ export default function HistorySettings() {
   );
 
   useEffect(() => {
-    fetchHistory({ page, page_size: PAGE_SIZE, is_valid: filterValid });
-  }, [page, filterValid, fetchHistory]);
+    if (searchQuery) {
+      fetchHistory({ page_size: PAGE_SIZE, ...searchQuery });
+    } else {
+      fetchHistory({ page, page_size: PAGE_SIZE, is_valid: filterValid });
+    }
+  }, [page, filterValid, searchQuery, fetchHistory]);
 
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 1;
-  const isSearchActive = searchResults !== null;
+  const isSearchActive = searchQuery !== null;
   const isFiltered = filterValid !== undefined || isSearchActive;
-  const displayedEntries = isSearchActive
-    ? searchResults
-    : (data?.results ?? []);
+  const displayedEntries = data?.results ?? [];
 
   function handleFilterToggle(value: boolean | undefined) {
     setFilterValid(value);
@@ -75,22 +74,17 @@ export default function HistorySettings() {
     const query = searchInput.trim();
     if (!query) return;
 
-    setSearchLoading(true);
-    setSearchResults(null);
+    const params: HistoryParams = query.includes("@")
+      ? { email: query }
+      : { request_id: query };
 
-    const request = query.includes("@")
-      ? getEmailHistory(token, query)
-      : getBulkHistory(token, query);
-
-    request
-      .then(setSearchResults)
-      .catch(() => setSearchResults([]))
-      .finally(() => setSearchLoading(false));
+    setSearchQuery(params);
   }
 
   function handleSearchClear() {
     setSearchInput("");
-    setSearchResults(null);
+    setSearchQuery(null);
+    setPage(1);
   }
 
   return (
@@ -215,18 +209,18 @@ export default function HistorySettings() {
             onSubmit={handleSearchSubmit}
             onClear={handleSearchClear}
             isActive={isSearchActive}
-            loading={searchLoading}
+            loading={loading && isSearchActive}
           />
         </Box>
       </Flex>
 
       {/* Search label */}
-      {isSearchActive && (
+      {isSearchActive && data && (
         <Text fontSize="xs" color="fg.muted" mb={3}>
-          {searchInput.includes("@")
-            ? `All validations for ${searchInput}`
-            : `All results for bulk job ${searchInput.slice(0, 8)}…`}{" "}
-          — {searchResults?.length ?? 0} found
+          {searchQuery?.email
+            ? `All validations for ${searchQuery.email}`
+            : `All results for bulk job ${searchQuery?.request_id?.slice(0, 8)}…`}{" "}
+          — {data.total} found
         </Text>
       )}
 
@@ -238,7 +232,7 @@ export default function HistorySettings() {
         borderRadius="lg"
         overflow="hidden"
       >
-        {loading || searchLoading ? (
+        {loading ? (
           <Flex justify="center" py={16}>
             <Spinner color="brand.solid" />
           </Flex>

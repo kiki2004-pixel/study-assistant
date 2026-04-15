@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, Button, Flex, Spinner, Text } from "@chakra-ui/react";
 import { FiX } from "react-icons/fi";
-import { getBulkHistory } from "api/history";
+import { getHistory } from "api/history";
 import type { HistoryEntry } from "types/history";
 import { StatusBadge } from "@app/components/badges/status-badge";
 
@@ -19,8 +19,8 @@ export function BulkDrawerCard({
 
   useEffect(() => {
     setLoading(true);
-    getBulkHistory(token, requestId)
-      .then(setEntries)
+    getHistory(token, { request_id: requestId })
+      .then((page) => setEntries(page.results))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [requestId, token]);

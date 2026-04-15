@@ -101,6 +101,8 @@ class HistoryStore:
         page: int = 1,
         page_size: int = 100,
         is_valid: Optional[bool] = None,
+        email: Optional[str] = None,
+        request_id: Optional[str] = None,
     ) -> tuple[list[HistoryRecord], int]:
         """Return paginated validation history, newest first."""
         stmt = select(validation_history).order_by(
@@ -110,6 +112,12 @@ class HistoryStore:
         if is_valid is not None:
             stmt = stmt.where(validation_history.c.is_valid == is_valid)
             count_stmt = count_stmt.where(validation_history.c.is_valid == is_valid)
+        if email is not None:
+            stmt = stmt.where(validation_history.c.email == email)
+            count_stmt = count_stmt.where(validation_history.c.email == email)
+        if request_id is not None:
+            stmt = stmt.where(validation_history.c.request_id == request_id)
+            count_stmt = count_stmt.where(validation_history.c.request_id == request_id)
         stmt = stmt.offset((page - 1) * page_size).limit(page_size)
         with self._engine.begin() as conn:
             total = conn.execute(count_stmt).scalar() or 0

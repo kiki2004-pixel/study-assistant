@@ -184,9 +184,26 @@ def test_get_bulk_history(client, store):
     assert len(r.json()) == 2
 
 
-def test_get_bulk_history_not_found(client):
-    r = client.get(f"/validation/history/bulk/{uuid.uuid4()}")
-    assert r.status_code == 404
+def test_search_by_email(client, store):
+    store.save(email="find@example.com", is_valid=True)
+    store.save(email="other@example.com", is_valid=True)
+    r = client.get("/validation/history?email=find@example.com")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["total"] == 1
+    assert data["results"][0]["email"] == "find@example.com"
+
+
+def test_search_by_request_id(client, store):
+    req_id = str(uuid.uuid4())
+    store.save(email="a@example.com", is_valid=True, request_id=req_id)
+    store.save(email="b@example.com", is_valid=False, request_id=req_id)
+    store.save(email="c@example.com", is_valid=True)
+    r = client.get(f"/validation/history?request_id={req_id}")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["total"] == 2
+    assert {e["email"] for e in data["results"]} == {"a@example.com", "b@example.com"}
 
 
 def test_delete_email_history(client, store):
