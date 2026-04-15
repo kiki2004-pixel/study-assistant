@@ -33,10 +33,24 @@ async def list_history(
     page: int = Query(1, ge=1),
     page_size: int = Query(100, ge=1, le=1000),
     is_valid: Optional[bool] = Query(None),
+    email: Optional[str] = Query(None),
+    request_id: Optional[str] = Query(None),
     store: HistoryStore = Depends(get_history_store),
 ):
-    """Return paginated validation history for the authenticated user, newest first."""
-    return repo.get_page(caller["sub"], page, page_size, is_valid)
+    """Return paginated validation history, newest first."""
+    records, total = store.get_history(
+        page=page,
+        page_size=page_size,
+        is_valid=is_valid,
+        email=email,
+        request_id=request_id,
+    )
+    return HistoryPage(
+        total=total,
+        page=page,
+        page_size=page_size,
+        results=[_to_entry(r) for r in records],
+    )
 
 
 @router.get("/bulk/{request_id}", response_model=list[HistoryEntry])

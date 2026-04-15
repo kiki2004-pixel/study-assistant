@@ -10,6 +10,14 @@ export interface HistoryEntry {
   user_id: string | null;
 }
 
+export interface HistoryParams {
+  page?: number;
+  page_size?: number;
+  is_valid?: boolean;
+  email?: string;
+  request_id?: string;
+}
+
 export interface HistoryPage {
   total: number;
   page: number;
