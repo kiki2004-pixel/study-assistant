@@ -16,7 +16,7 @@ os.environ["SSRF_PROTECTION_ENABLED"] = "false"
 # Use a temp SQLite file so tests don't mutate a real DB or leak state between runs
 _fd, _db_path = tempfile.mkstemp(suffix=".db")
 os.close(_fd)
-os.environ["WATERMARK_DB_URL"] = f"sqlite:///{_db_path}"
+os.environ["SCRUB_DB_URL"] = f"sqlite:///{_db_path}"
 atexit.register(lambda: os.path.exists(_db_path) and os.remove(_db_path))
 
 from main import app  # noqa: E402
@@ -27,8 +27,8 @@ from scrub.storage.history_store import HistoryStore  # noqa: E402
 from scrub.routers.validation_router import get_user_store  # noqa: E402
 
 # Initialise schemas before tests run — TestClient does not trigger lifespan
-WebhookStore(settings.watermark_db_url).init_schema()
-HistoryStore(settings.watermark_db_url).init_schema()
+WebhookStore(settings.scrub_db_url).init_schema()
+HistoryStore(settings.scrub_db_url).init_schema()
 
 # Mock Paths for Service and Client
 MOCK_DNS_PATH = "scrub.services.validation_service.check_dns_records"

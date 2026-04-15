@@ -23,7 +23,7 @@ class UserContext(BaseModel):
 
 
 def get_user_store() -> UserStore:
-    return UserStore(settings.watermark_db_url)
+    return UserStore(settings.scrub_db_url)
 
 
 @router.get("/context", response_model=UserContext)

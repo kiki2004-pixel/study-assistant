@@ -1,64 +1,6 @@
-import { Box, Flex, Heading, Switch, Text } from "@chakra-ui/react";
-
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Box mb={10}>
-      <Box mb={5} pb={3} borderBottomWidth="1px" borderColor="border">
-        <Heading fontSize="md" fontWeight="600" letterSpacing="-0.01em">
-          {title}
-        </Heading>
-        {description && (
-          <Text fontSize="xs" color="fg.muted" mt={1}>
-            {description}
-          </Text>
-        )}
-      </Box>
-      {children}
-    </Box>
-  );
-}
-
-function SettingRow({
-  label,
-  description,
-  children,
-}: {
-  label: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Flex
-      justify="space-between"
-      align="center"
-      py={4}
-      borderBottomWidth="1px"
-      borderColor="border"
-      gap={8}
-      _last={{ borderBottom: "none" }}
-    >
-      <Box>
-        <Text fontSize="sm" fontWeight="500">
-          {label}
-        </Text>
-        {description && (
-          <Text fontSize="xs" color="fg.muted" mt={0.5} lineHeight={1.5}>
-            {description}
-          </Text>
-        )}
-      </Box>
-      <Box flexShrink={0}>{children}</Box>
-    </Flex>
-  );
-}
+import { Box, Heading, Switch } from "@chakra-ui/react";
+import { SettingsRow } from "@app/components/settings/settings-row";
+import { SettingsSection } from "@app/components/settings/settings-section";
 
 export default function AnalyticsSettings() {
   return (
@@ -72,11 +14,11 @@ export default function AnalyticsSettings() {
         Analytics
       </Heading>
 
-      <Section
+      <SettingsSection
         title="Data collection"
         description="Control what usage data Scrub collects to improve your experience."
       >
-        <SettingRow
+        <SettingsRow
           label="Usage analytics"
           description="Allow Scrub to collect anonymised usage data to improve the product."
         >
@@ -84,8 +26,8 @@ export default function AnalyticsSettings() {
             <Switch.HiddenInput />
             <Switch.Control />
           </Switch.Root>
-        </SettingRow>
-        <SettingRow
+        </SettingsRow>
+        <SettingsRow
           label="Error reporting"
           description="Automatically send crash reports and error logs to help us fix bugs faster."
         >
@@ -93,8 +35,8 @@ export default function AnalyticsSettings() {
             <Switch.HiddenInput />
             <Switch.Control />
           </Switch.Root>
-        </SettingRow>
-        <SettingRow
+        </SettingsRow>
+        <SettingsRow
           label="Feature usage tracking"
           description="Track which features you use so we can prioritise improvements."
         >
@@ -102,14 +44,14 @@ export default function AnalyticsSettings() {
             <Switch.HiddenInput />
             <Switch.Control />
           </Switch.Root>
-        </SettingRow>
-      </Section>
+        </SettingsRow>
+      </SettingsSection>
 
-      <Section
+      <SettingsSection
         title="Data retention"
         description="Choose how long your validation history is stored."
       >
-        <SettingRow
+        <SettingsRow
           label="Keep validation history"
           description="Store individual validation results so you can review them later."
         >
@@ -117,8 +59,8 @@ export default function AnalyticsSettings() {
             <Switch.HiddenInput />
             <Switch.Control />
           </Switch.Root>
-        </SettingRow>
-        <SettingRow
+        </SettingsRow>
+        <SettingsRow
           label="Keep bulk job logs"
           description="Retain logs and result files from bulk CSV validation jobs."
         >
@@ -126,8 +68,8 @@ export default function AnalyticsSettings() {
             <Switch.HiddenInput />
             <Switch.Control />
           </Switch.Root>
-        </SettingRow>
-      </Section>
+        </SettingsRow>
+      </SettingsSection>
     </Box>
   );
 }

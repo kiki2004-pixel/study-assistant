@@ -1,4 +1,5 @@
 """Tests for validation history storage and API endpoints."""
+
 import os
 import uuid
 import pytest

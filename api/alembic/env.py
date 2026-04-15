@@ -31,7 +31,7 @@ for _m in (watermark_metadata, webhook_metadata, user_metadata, history_metadata
 config = context.config
 
 # Override URL via env var to avoid hardcoding in alembic.ini.
-db_url = os.getenv("WATERMARK_DB_URL")
+db_url = os.getenv("SCRUB_DB_URL")
 if db_url:
     config.set_main_option("sqlalchemy.url", db_url)
 

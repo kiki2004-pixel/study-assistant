@@ -12,9 +12,6 @@ from scrub.routers.listmonk_router import router as listmonk_router
 from scrub.routers.webhook_router import router as webhook_router
 from scrub.routers.user_router import router as user_router
 from scrub.routers.history_router import router as history_router
-from scrub.storage.webhook_store import WebhookStore
-from scrub.storage.user_store import UserStore
-from scrub.storage.history_store import HistoryStore
 from scrub.settings import settings
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -31,10 +28,6 @@ if settings.sentry_dsn:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Run schema init once at startup — not on every request
-    WebhookStore(settings.watermark_db_url).init_schema()
-    UserStore(settings.watermark_db_url).init_schema()
-    HistoryStore(settings.watermark_db_url).init_schema()
     yield
 
 
@@ -83,4 +76,6 @@ app.include_router(router=webhook_router, prefix="/webhooks", tags=["Webhooks"])
 app.include_router(router=user_router, prefix="", tags=["User"])
 
 # Validation History: /validation/history
-app.include_router(router=history_router, prefix="/validation/history", tags=["Validation History"])
+app.include_router(
+    router=history_router, prefix="/validation/history", tags=["Validation History"]
+)

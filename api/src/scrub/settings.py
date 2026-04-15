@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     # Worker / Celery Settings
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_result_backend: str = "redis://localhost:6379/0"
-    watermark_db_url: str = "sqlite:///./watermarks.db"
+    scrub_db_url: str
     validation_batch_size: int = 250
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

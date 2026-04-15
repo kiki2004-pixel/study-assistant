@@ -32,9 +32,9 @@ class FakeListmonkClient:
 
 @pytest.fixture()
 def db_url():
-    url = os.getenv("WATERMARK_DB_URL")
+    url = os.getenv("SCRUB_DB_URL")
     if not url:
-        pytest.skip("WATERMARK_DB_URL not set")
+        pytest.skip("SCRUB_DB_URL not set")
     engine = create_engine(url, future=True)
     metadata.create_all(engine)
     with engine.begin() as conn:

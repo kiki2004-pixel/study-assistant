@@ -33,7 +33,7 @@ worker:
 	docker compose up -d celery-worker
 
 deps:
-	docker compose up -d listmonk_db listmonk_app redis zitadel
+	docker compose up -d listmonk_db listmonk_app redis zitadel scrub_db
 
 zitadel:
 	docker compose up -d zitadel
@@ -41,7 +41,7 @@ zitadel:
 # ── Local dev servers (outside Docker) ───────────────────────────────────────
 
 api-dev:
-	cd api && WATERMARK_DB_URL=postgresql+psycopg2://listmonk:listmonk@localhost:5432/listmonk \
+	cd api && SCRUB_DB_URL=postgresql+psycopg2://scrub:scrub@localhost:5433/scrub \
 		CELERY_BROKER_URL=redis://localhost:6379/0 \
 		CELERY_RESULT_BACKEND=redis://localhost:6379/0 \
 		LISTMONK_URL=http://localhost:9000 \
@@ -73,11 +73,13 @@ typecheck:
 # ── Migrations ────────────────────────────────────────────────────────────────
 
 migrate:
-	cd api && uv run alembic upgrade head
+	cd api && SCRUB_DB_URL=postgresql+psycopg2://scrub:scrub@localhost:5433/scrub \
+		bash scripts/migrate.sh
 
 migrate-new:
 	@read -p "Migration description: " desc; \
-	cd api && uv run alembic revision --autogenerate -m "$$desc"
+	cd api && SCRUB_DB_URL=postgresql+psycopg2://scrub:scrub@localhost:5433/scrub \
+		uv run alembic revision --autogenerate -m "$$desc"
 
 # ── Zitadel client setup ──────────────────────────────────────────────────────
 # Run these after `make zitadel` to create the OIDC app and service account.

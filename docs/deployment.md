@@ -94,7 +94,7 @@ alembic -c server/alembic.ini revision --autogenerate -m "description"
 alembic -c server/alembic.ini current
 ```
 
-Set `WATERMARK_DB_URL` before running. Default in docker-compose:
+Set `SCRUB_DB_URL` before running. Default in docker-compose:
 ```
 postgresql+psycopg2://listmonk:listmonk@listmonk_db:5432/listmonk
 ```

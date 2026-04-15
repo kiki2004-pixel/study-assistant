@@ -27,13 +27,12 @@ logger = logging.getLogger(__name__)
 
 
 def get_webhook_store() -> WebhookStore:
-    return WebhookStore(settings.watermark_db_url)
+    return WebhookStore(settings.scrub_db_url)
 
 
 @lru_cache
 def get_user_store() -> UserStore:
-    return UserStore(settings.watermark_db_url)
-
+    return UserStore(settings.scrub_db_url)
 
 
 router = APIRouter()
@@ -212,7 +211,9 @@ async def validate_bulk(
                     layer="internal",
                     details={"message": "Unexpected validation error."},
                 )
-                history_entries.append({"email": email, "is_valid": False, "request_id": request_id})
+                history_entries.append(
+                    {"email": email, "is_valid": False, "request_id": request_id}
+                )
                 if payload.response_mode in ("all", "invalid_only"):
                     results.append(item)
                 continue
@@ -233,14 +234,16 @@ async def validate_bulk(
                     layer=layer,
                     details=r.get("details") or {},
                 )
-                history_entries.append({
-                    "email": email,
-                    "is_valid": False,
-                    "quality_score": r.get("quality_score"),
-                    "checks": r.get("checks"),
-                    "attributes": r.get("attributes"),
-                    "request_id": request_id,
-                })
+                history_entries.append(
+                    {
+                        "email": email,
+                        "is_valid": False,
+                        "quality_score": r.get("quality_score"),
+                        "checks": r.get("checks"),
+                        "attributes": r.get("attributes"),
+                        "request_id": request_id,
+                    }
+                )
                 if payload.response_mode in ("all", "invalid_only"):
                     results.append(item)
                 continue
@@ -255,14 +258,16 @@ async def validate_bulk(
                 layer=layer,
                 details=r.get("details") or {},
             )
-            history_entries.append({
-                "email": email,
-                "is_valid": True,
-                "quality_score": r.get("quality_score"),
-                "checks": r.get("checks"),
-                "attributes": r.get("attributes"),
-                "request_id": request_id,
-            })
+            history_entries.append(
+                {
+                    "email": email,
+                    "is_valid": True,
+                    "quality_score": r.get("quality_score"),
+                    "checks": r.get("checks"),
+                    "attributes": r.get("attributes"),
+                    "request_id": request_id,
+                }
+            )
             if payload.response_mode == "all":
                 results.append(item)
 

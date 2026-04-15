@@ -42,7 +42,7 @@ listmonk_watermark = Table(
 class WatermarkStore:
     def __init__(self, db_url: str) -> None:
         if not db_url:
-            raise ValueError("WATERMARK_DB_URL is required")
+            raise ValueError("SCRUB_DB_URL is required")
         self._engine = create_engine(db_url, future=True)
 
     def _ensure_row(self, conn, list_id: int) -> None:

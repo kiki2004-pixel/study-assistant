@@ -23,7 +23,7 @@ export function AuthenticatedNavbar() {
 
   useEffect(() => {
     if (!auth.isAuthenticated || !auth.user?.access_token) return;
-    getMe(auth.user.access_token).then(setContext).catch(console.error);
+    getMe().then(setContext).catch(console.error);
   }, [auth.isAuthenticated, auth.user?.access_token]);
 
   return (

@@ -3,7 +3,7 @@ import { IoIosArrowDown } from "react-icons/io";
 
 const navItems = [
   { label: "API Keys", href: "/api/keys" },
-  { label: "Docs", href: "/docs" },
+  { label: "Docs", href: "/api/docs" },
 ];
 const ApiDropdown = () => {
   return (

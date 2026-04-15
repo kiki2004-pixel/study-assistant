@@ -1,63 +1,7 @@
-import { Box, Flex, Heading, Input, Switch, Text } from "@chakra-ui/react";
-
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Box mb={10}>
-      <Heading
-        fontSize="md"
-        fontWeight="600"
-        letterSpacing="-0.01em"
-        mb={5}
-        pb={3}
-        borderBottomWidth="1px"
-        borderColor="border"
-      >
-        {title}
-      </Heading>
-      {children}
-    </Box>
-  );
-}
-
-function SettingRow({
-  label,
-  description,
-  children,
-}: {
-  label: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Flex
-      justify="space-between"
-      align="center"
-      py={4}
-      borderBottomWidth="1px"
-      borderColor="border"
-      gap={8}
-      _last={{ borderBottom: "none" }}
-    >
-      <Box>
-        <Text fontSize="sm" fontWeight="500">
-          {label}
-        </Text>
-        {description && (
-          <Text fontSize="xs" color="fg.muted" mt={0.5} lineHeight={1.5}>
-            {description}
-          </Text>
-        )}
-      </Box>
-      <Box flexShrink={0}>{children}</Box>
-    </Flex>
-  );
-}
+import { Box, Heading, Input, Menu, Switch } from "@chakra-ui/react";
+import { SettingsRow } from "@app/components/settings/settings-row";
+import { SettingsSection } from "@app/components/settings/settings-section";
+import DefaultValidationModePicker from "@app/components/dropdowns/default-validation-mode-picker";
 
 export default function GeneralSettings() {
   return (
@@ -71,21 +15,14 @@ export default function GeneralSettings() {
         General
       </Heading>
 
-      <Section title="Preferences">
-        <SettingRow
+      <SettingsSection title="Preferences">
+        <SettingsRow
           label="Default validation mode"
           description="Choose whether single or bulk validation is shown first on login."
         >
-          <Input
-            defaultValue="Single"
-            size="sm"
-            w="140px"
-            borderRadius="md"
-            borderColor="border"
-            fontSize="sm"
-          />
-        </SettingRow>
-        <SettingRow
+          <DefaultValidationModePicker />
+        </SettingsRow>
+        <SettingsRow
           label="Show validation score"
           description="Display a risk score alongside each validation result."
         >
@@ -93,8 +30,8 @@ export default function GeneralSettings() {
             <Switch.HiddenInput />
             <Switch.Control />
           </Switch.Root>
-        </SettingRow>
-        <SettingRow
+        </SettingsRow>
+        <SettingsRow
           label="Auto-export results"
           description="Automatically download a CSV after each bulk validation job."
         >
@@ -102,11 +39,11 @@ export default function GeneralSettings() {
             <Switch.HiddenInput />
             <Switch.Control />
           </Switch.Root>
-        </SettingRow>
-      </Section>
+        </SettingsRow>
+      </SettingsSection>
 
-      <Section title="Notifications">
-        <SettingRow
+      <SettingsSection title="Notifications">
+        <SettingsRow
           label="Bulk job completed"
           description="Get notified by email when a bulk validation job finishes."
         >
@@ -114,8 +51,8 @@ export default function GeneralSettings() {
             <Switch.HiddenInput />
             <Switch.Control />
           </Switch.Root>
-        </SettingRow>
-        <SettingRow
+        </SettingsRow>
+        <SettingsRow
           label="Monthly usage summary"
           description="Receive a monthly email with your usage stats and trends."
         >
@@ -123,8 +60,8 @@ export default function GeneralSettings() {
             <Switch.HiddenInput />
             <Switch.Control />
           </Switch.Root>
-        </SettingRow>
-        <SettingRow
+        </SettingsRow>
+        <SettingsRow
           label="Low credit warning"
           description="Alert me when my remaining validation credits drop below 500."
         >
@@ -132,8 +69,8 @@ export default function GeneralSettings() {
             <Switch.HiddenInput />
             <Switch.Control />
           </Switch.Root>
-        </SettingRow>
-      </Section>
+        </SettingsRow>
+      </SettingsSection>
     </Box>
   );
 }

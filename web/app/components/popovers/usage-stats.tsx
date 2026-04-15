@@ -1,7 +1,7 @@
 import { Button, Link, Popover, Portal, Text } from "@chakra-ui/react";
 import type { UserStats } from "types/context";
 
-const UsageStats = (stats: UserStats) => {
+export default function UsageStats(stats: UserStats) {
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
@@ -18,7 +18,11 @@ const UsageStats = (stats: UserStats) => {
               <Text my="4">
                 You have validated {stats.total_validations} times this month.
               </Text>
-              <Link variant="underline" colorPalette="teal" href="/dashboard">
+              <Link
+                variant="underline"
+                colorPalette="teal"
+                href="/settings/analytics"
+              >
                 View all Analytics
               </Link>
             </Popover.Body>
@@ -27,6 +31,4 @@ const UsageStats = (stats: UserStats) => {
       </Portal>
     </Popover.Root>
   );
-};
-
-export default UsageStats;
+}

@@ -96,7 +96,7 @@ VITE_* env vars are baked into the build at image build time (passed as Docker b
 | `API_KEY` | server | `server/.env` |
 | `LISTMONK_URL`, `LISTMONK_USER`, `LISTMONK_PASS`, `LISTMONK_LIST_ID` | server | `server/.env` |
 | `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND` | server | `server/.env` |
-| `WATERMARK_DB_URL` | server | `server/.env` |
+| `SCRUB_DB_URL` | server | `server/.env` |
 | `VALIDATION_BATCH_SIZE`, `VALIDATION_POLL_INTERVAL_SECONDS` | server | `server/.env` |
 | `GF_SECURITY_ADMIN_USER`, `GF_SECURITY_ADMIN_PASSWORD` | grafana | `.env` (root) |
 | `LISTMONK_ADMIN_USER`, `LISTMONK_ADMIN_PASSWORD` | listmonk bootstrap | `.env` (root) |

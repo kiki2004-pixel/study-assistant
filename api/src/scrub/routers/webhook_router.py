@@ -21,7 +21,7 @@ def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> str:
 
 
 def get_webhook_store() -> WebhookStore:
-    return WebhookStore(settings.watermark_db_url)
+    return WebhookStore(settings.scrub_db_url)
 
 
 # Models

@@ -1,67 +1,8 @@
 import { useAuth } from "react-oidc-context";
-import {
-  Box,
-  Button,
-  Flex,
-  Heading,
-  Table,
-  Text,
-  Badge,
-} from "@chakra-ui/react";
+import { Box, Button, Flex, Heading, Text, Badge } from "@chakra-ui/react";
 import { FiMoreHorizontal } from "react-icons/fi";
-
-function Row({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Flex
-      justify="space-between"
-      align="center"
-      py={4}
-      borderBottomWidth="1px"
-      borderColor="border"
-      gap={8}
-    >
-      <Text fontSize="sm">{label}</Text>
-      <Box>{children}</Box>
-    </Flex>
-  );
-}
-
-function formatDate(epoch: number | undefined): string {
-  if (!epoch) return "—";
-  return new Date(epoch * 1000).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
-function getDevice(): string {
-  const ua = navigator.userAgent;
-  let browser = "Browser";
-  let os = "Unknown";
-
-  if (ua.includes("Chrome") && !ua.includes("Edg")) browser = "Chrome";
-  else if (ua.includes("Firefox")) browser = "Firefox";
-  else if (ua.includes("Safari") && !ua.includes("Chrome")) browser = "Safari";
-  else if (ua.includes("Edg")) browser = "Edge";
-
-  if (ua.includes("Linux")) os = "Linux";
-  else if (ua.includes("Windows")) os = "Windows";
-  else if (ua.includes("Mac")) os = "macOS";
-  else if (ua.includes("iPhone") || ua.includes("iPad")) os = "iOS";
-  else if (ua.includes("Android")) os = "Android";
-
-  return `${browser} (${os})`;
-}
+import { formatDate, getDevice } from "@lib/utils";
+import { SettingsRow } from "@app/components/settings/settings-row";
 
 export default function AccountSettings() {
   const auth = useAuth();
@@ -73,6 +14,15 @@ export default function AccountSettings() {
   function handleLogout() {
     auth.signoutRedirect();
   }
+
+  const handleUpdateProfile = () => {
+    window.open(
+      `${auth.settings.authority}/ui/console/users/me`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  };
+  const handleDeleteAccount = () => {};
 
   return (
     <Box>
@@ -87,7 +37,21 @@ export default function AccountSettings() {
 
       {/* Account actions */}
       <Box mb={10}>
-        <Row label="Log out of all devices">
+        <SettingsRow label="Update profile">
+          <Button
+            size="sm"
+            variant="outline"
+            borderColor="border"
+            borderRadius="md"
+            fontSize="sm"
+            fontWeight="500"
+            onClick={handleUpdateProfile}
+          >
+            Update profile
+          </Button>
+        </SettingsRow>
+
+        <SettingsRow label="Log out of all devices">
           <Button
             size="sm"
             variant="outline"
@@ -99,19 +63,13 @@ export default function AccountSettings() {
           >
             Log out
           </Button>
-        </Row>
+        </SettingsRow>
 
-        <Row label="Delete account">
+        <SettingsRow label="Delete account">
           <Text fontSize="xs" color="fg.muted" textAlign="right" maxW="220px">
             Contact support to permanently delete your account and all data.
           </Text>
-        </Row>
-
-        <Row label="Your role">
-          <Text fontSize="sm" color="fg.muted">
-            User
-          </Text>
-        </Row>
+        </SettingsRow>
       </Box>
 
       {/* Active sessions */}
@@ -120,72 +78,57 @@ export default function AccountSettings() {
           Active sessions
         </Heading>
 
-        <Table.Root size="sm" variant="outline" borderRadius="md">
-          <Table.Header>
-            <Table.Row bg="bg.subtle">
-              <Table.ColumnHeader
-                fontSize="xs"
-                fontWeight="500"
-                color="fg.muted"
-                py={3}
+        <Box
+          borderWidth="1px"
+          borderColor="border"
+          borderRadius="md"
+          overflow="hidden"
+        >
+          <Flex
+            align="center"
+            justify="space-between"
+            px={4}
+            py={3}
+            borderBottomWidth="1px"
+            borderColor="border"
+          >
+            <Flex align="center" gap={2} fontSize="sm">
+              {getDevice()}
+              <Badge
+                size="sm"
+                variant="subtle"
+                colorPalette="green"
+                borderRadius="full"
+                px={2}
+                fontSize="10px"
               >
-                Device
-              </Table.ColumnHeader>
-              <Table.ColumnHeader
-                fontSize="xs"
-                fontWeight="500"
-                color="fg.muted"
-                py={3}
-              >
+                Current
+              </Badge>
+            </Flex>
+            <Box
+              as="button"
+              color="fg.muted"
+              _hover={{ color: "fg" }}
+              transition="color 0.1s"
+            >
+              <FiMoreHorizontal />
+            </Box>
+          </Flex>
+          <Flex gap={6} px={4} py={3} bg="bg.subtle">
+            <Box>
+              <Text fontSize="xs" color="fg.muted" mb={0.5}>
                 Created
-              </Table.ColumnHeader>
-              <Table.ColumnHeader
-                fontSize="xs"
-                fontWeight="500"
-                color="fg.muted"
-                py={3}
-              >
+              </Text>
+              <Text fontSize="sm">{formatDate(issuedAt)}</Text>
+            </Box>
+            <Box>
+              <Text fontSize="xs" color="fg.muted" mb={0.5}>
                 Expires
-              </Table.ColumnHeader>
-              <Table.ColumnHeader py={3} />
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            <Table.Row>
-              <Table.Cell py={4} fontSize="sm">
-                <Flex align="center" gap={2}>
-                  {getDevice()}
-                  <Badge
-                    size="sm"
-                    variant="subtle"
-                    colorPalette="green"
-                    borderRadius="full"
-                    px={2}
-                    fontSize="10px"
-                  >
-                    Current
-                  </Badge>
-                </Flex>
-              </Table.Cell>
-              <Table.Cell py={4} fontSize="sm" color="fg.muted">
-                {formatDate(issuedAt)}
-              </Table.Cell>
-              <Table.Cell py={4} fontSize="sm" color="fg.muted">
-                {formatDate(expiresAt)}
-              </Table.Cell>
-              <Table.Cell py={4} textAlign="right">
-                <Box
-                  as="button"
-                  color="fg.muted"
-                  _hover={{ color: "fg" }}
-                  transition="color 0.1s"
-                >
-                  <FiMoreHorizontal />
-                </Box>
-              </Table.Cell>
-            </Table.Row>
-          </Table.Body>
-        </Table.Root>
+              </Text>
+              <Text fontSize="sm">{formatDate(expiresAt)}</Text>
+            </Box>
+          </Flex>
+        </Box>
       </Box>
     </Box>
   );

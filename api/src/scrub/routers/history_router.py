@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 def get_history_store() -> HistoryStore:
-    return HistoryStore(settings.watermark_db_url)
+    return HistoryStore(settings.scrub_db_url)
 
 
 def _to_entry(r: HistoryRecord) -> HistoryEntry:
@@ -39,11 +39,7 @@ async def list_history(
 ):
     """Return paginated validation history, newest first."""
     records, total = store.get_history(
-        page=page,
-        page_size=page_size,
-        is_valid=is_valid,
-        email=email,
-        request_id=request_id,
+        page=page, page_size=page_size, is_valid=is_valid
     )
     return HistoryPage(
         total=total,
@@ -61,7 +57,9 @@ async def get_bulk_history(
     """Return all validation results for a bulk job."""
     records = store.get_by_request_id(request_id)
     if not records:
-        raise HTTPException(status_code=404, detail="No history found for this request_id")
+        raise HTTPException(
+            status_code=404, detail="No history found for this request_id"
+        )
     return [_to_entry(r) for r in records]
 
 

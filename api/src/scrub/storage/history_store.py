@@ -32,7 +32,7 @@ validation_history = Table(
     Column("validated_at", DateTime, nullable=False, server_default=func.now()),
     Column("is_valid", Boolean, nullable=False),
     Column("quality_score", Integer, nullable=True),
-    Column("checks", Text, nullable=True),      # JSON blob
+    Column("checks", Text, nullable=True),  # JSON blob
     Column("attributes", Text, nullable=True),  # JSON blob
     Column("request_id", String(36), nullable=True),
     Column("user_id", Text, nullable=True),
@@ -58,7 +58,7 @@ class HistoryRecord:
 class HistoryStore:
     def __init__(self, db_url: str) -> None:
         if not db_url:
-            raise ValueError("WATERMARK_DB_URL is required")
+            raise ValueError("SCRUB_DB_URL is required")
         self._engine = create_engine(db_url, future=True)
 
     def init_schema(self) -> None:
@@ -89,7 +89,9 @@ class HistoryStore:
                     is_valid=is_valid,
                     quality_score=quality_score,
                     checks=json.dumps(checks) if checks is not None else None,
-                    attributes=json.dumps(attributes) if attributes is not None else None,
+                    attributes=json.dumps(attributes)
+                    if attributes is not None
+                    else None,
                     request_id=request_id,
                     user_id=user_id,
                 )
@@ -163,7 +165,9 @@ class HistoryStore:
                     "is_valid": e["is_valid"],
                     "quality_score": e.get("quality_score"),
                     "checks": json.dumps(checks) if checks is not None else None,
-                    "attributes": json.dumps(attributes) if attributes is not None else None,
+                    "attributes": json.dumps(attributes)
+                    if attributes is not None
+                    else None,
                     "request_id": e.get("request_id"),
                     "user_id": e.get("user_id"),
                 }
@@ -175,9 +179,7 @@ class HistoryStore:
         """Delete all history for an email address. Returns rows deleted."""
         with self._engine.begin() as conn:
             result = conn.execute(
-                delete(validation_history).where(
-                    validation_history.c.email == email
-                )
+                delete(validation_history).where(validation_history.c.email == email)
             )
         return result.rowcount
 

@@ -20,7 +20,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 metadata = MetaData()
 
 users = Table(
-    "scrub_users",
+    "users",
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("sub", String(255), nullable=False, unique=True),
@@ -30,7 +30,7 @@ users = Table(
 )
 
 user_stats = Table(
-    "scrub_user_stats",
+    "user_stats",
     metadata,
     Column("user_id", Integer, nullable=False),
     Column("year", Integer, nullable=False),
@@ -58,7 +58,7 @@ class UserStats:
 class UserStore:
     def __init__(self, db_url: str) -> None:
         if not db_url:
-            raise ValueError("WATERMARK_DB_URL is required")
+            raise ValueError("SCRUB_DB_URL is required")
         self._engine = create_engine(db_url, future=True)
 
     def init_schema(self) -> None:
@@ -111,7 +111,9 @@ class UserStore:
         now = datetime.now(timezone.utc)
         stmt = (
             pg_insert(user_stats)
-            .values(user_id=user_id, year=now.year, month=now.month, email_validations=count)
+            .values(
+                user_id=user_id, year=now.year, month=now.month, email_validations=count
+            )
             .on_conflict_do_update(
                 constraint="uq_user_stats_period",
                 set_={"email_validations": user_stats.c.email_validations + count},
