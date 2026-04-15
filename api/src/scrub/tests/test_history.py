@@ -14,7 +14,6 @@ os.environ.setdefault("API_KEY", "test-api-key")
 
 from scrub.storage.history_store import HistoryStore  # noqa: E402
 from scrub.routers.history_router import get_history_store  # noqa: E402
-from scrub.auth import verify_token  # noqa: E402
 from main import app  # noqa: E402
 
 
@@ -47,12 +46,10 @@ _FAKE_CALLER = {
 
 @pytest.fixture()
 def client(store):
-    """TestClient with history store and auth dependencies overridden."""
+    """TestClient with history store dependency overridden to use temp SQLite."""
     app.dependency_overrides[get_history_store] = lambda: store
-    app.dependency_overrides[verify_token] = lambda: {"sub": "test-user"}
     yield TestClient(app)
     app.dependency_overrides.pop(get_history_store, None)
-    app.dependency_overrides.pop(verify_token, None)
 
 
 # ---------------------------------------------------------------------------

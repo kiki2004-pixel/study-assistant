@@ -9,8 +9,8 @@ import {
   Spinner,
   Text,
 } from "@chakra-ui/react";
-import { getHistory } from "api/history";
-import type { HistoryPage, HistoryParams } from "types/history";
+import { getHistory, getEmailHistory, getBulkHistory } from "api/history";
+import type { HistoryEntry, HistoryPage, HistoryParams } from "types/history";
 import { StatusBadge } from "@app/components/badges/status-badge";
 import { EmptyStateCard } from "@app/components/cards/empty-state-card";
 import { BulkDrawerCard } from "@app/components/cards/bulk-drawer-card";
@@ -30,11 +30,9 @@ export default function HistorySettings() {
   const [data, setData] = useState<HistoryPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [filterValid, setFilterValid] = useState<boolean | undefined>(
-    undefined,
-  );
+  const [filterValid, setFilterValid] = useState<boolean | undefined>(undefined);
+  const [emailSearch, setEmailSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [searchQuery, setSearchQuery] = useState<HistoryParams | null>(null);
   const [activeBulkId, setActiveBulkId] = useState<string | null>(null);
 
   const token = auth.user?.access_token ?? "";
@@ -52,17 +50,11 @@ export default function HistorySettings() {
   );
 
   useEffect(() => {
-    if (searchQuery) {
-      fetchHistory({ page_size: PAGE_SIZE, ...searchQuery });
-    } else {
-      fetchHistory({ page, page_size: PAGE_SIZE, is_valid: filterValid });
-    }
-  }, [page, filterValid, searchQuery, fetchHistory]);
-
-  const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 1;
-  const isSearchActive = searchQuery !== null;
+  const isSearchActive = searchResults !== null;
   const isFiltered = filterValid !== undefined || isSearchActive;
-  const displayedEntries = data?.results ?? [];
+  const displayedEntries = isSearchActive
+    ? searchResults
+    : (data?.results ?? []);
 
   function handleFilterToggle(value: boolean | undefined) {
     setFilterValid(value);
@@ -71,19 +63,13 @@ export default function HistorySettings() {
 
   function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const query = searchInput.trim();
-    if (!query) return;
-
-    const params: HistoryParams = query.includes("@")
-      ? { email: query }
-      : { request_id: query };
-
-    setSearchQuery(params);
+    setEmailSearch(searchInput);
+    setPage(1);
   }
 
   function handleSearchClear() {
     setSearchInput("");
-    setSearchQuery(null);
+    setEmailSearch("");
     setPage(1);
   }
 
@@ -110,7 +96,7 @@ export default function HistorySettings() {
       </Text>
 
       {/* Stats */}
-      {data && data.total > 0 && !isSearchActive && (
+      {data && data.total > 0 && (
         <Flex gap={3} mb={6}>
           <Box
             bg="bg.muted"
@@ -209,18 +195,19 @@ export default function HistorySettings() {
             onSubmit={handleSearchSubmit}
             onClear={handleSearchClear}
             isActive={isSearchActive}
-            loading={loading && isSearchActive}
+            loading={searchLoading}
           />
         </Box>
       </Flex>
 
       {/* Search label */}
-      {isSearchActive && data && (
+
+      {isSearchActive && (
         <Text fontSize="xs" color="fg.muted" mb={3}>
-          {searchQuery?.email
-            ? `All validations for ${searchQuery.email}`
-            : `All results for bulk job ${searchQuery?.request_id?.slice(0, 8)}…`}{" "}
-          — {data.total} found
+          {searchInput.includes("@")
+            ? `All validations for ${searchInput}`
+            : `All results for bulk job ${searchInput.slice(0, 8)}…`}{" "}
+          — {searchResults?.length ?? 0} found
         </Text>
       )}
 
@@ -386,8 +373,8 @@ export default function HistorySettings() {
         )}
       </Box>
 
-      {/* Pagination — hidden during search */}
-      {!loading && !isSearchActive && totalPages > 1 && (
+      {/* Pagination */}
+      {!loading && totalPages > 1 && (
         <Flex justify="space-between" align="center" mt={4}>
           <Text fontSize="sm" color="fg.muted">
             Page {page} of {totalPages} — {data?.total ?? 0} total
