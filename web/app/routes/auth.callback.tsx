@@ -28,7 +28,7 @@ export default function AuthCallback() {
         }
       } catch (e) {
         // Let react-oidc-context surface the error via auth.error; also log for debugging.
-        // eslint-disable-next-line no-console
+
         console.error("Error handling sign-in callback", e);
       }
     };

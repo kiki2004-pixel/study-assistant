@@ -2,8 +2,6 @@ import { useState } from "react";
 import { useAuth } from "react-oidc-context";
 import { Box, Button, Container, Flex, Icon, Text } from "@chakra-ui/react";
 import { FiCheckCircle, FiChevronDown, FiMenu, FiX } from "react-icons/fi";
-import { MdAdsClick } from "react-icons/md";
-import { CiUser } from "react-icons/ci";
 import { FaUser } from "react-icons/fa";
 
 const NAV_LINKS = [

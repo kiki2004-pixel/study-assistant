@@ -15,7 +15,7 @@ export async function apiPost<T>(
     ...options,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
+      ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
       ...(options.headers ?? {}),
     },
   });
@@ -36,7 +36,7 @@ export async function apiFetch<T>(
     ...options,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
+      ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
       ...(options.headers ?? {}),
     },
   });

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { Outlet, useNavigate } from "react-router";
 import { useAuth } from "react-oidc-context";
 import { Box } from "@chakra-ui/react";
@@ -15,7 +15,7 @@ export default function AuthenticatedLayout() {
     }
   }, [auth.isLoading, auth.isAuthenticated, navigate]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (auth.user?.access_token) setToken(auth.user.access_token);
     return () => setToken(null);
   }, [auth.user?.access_token]);

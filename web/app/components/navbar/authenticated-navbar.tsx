@@ -12,7 +12,7 @@ const NAV_LINKS = [
   { label: "Single", href: "/dashboard" },
   { label: "Lists", href: "/lists" },
   { label: "Integrations", href: "/integrations" },
-  { label: "API", href: "/api", dropdown: true },
+  { label: "API", href: "/api/keys", dropdown: true },
 ];
 
 export function AuthenticatedNavbar() {

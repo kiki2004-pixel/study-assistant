@@ -8,17 +8,17 @@ export function getDevice(): string {
   else if (ua.includes("Safari") && !ua.includes("Chrome")) browser = "Safari";
   else if (ua.includes("Edg")) browser = "Edge";
 
-  if (ua.includes("Linux")) os = "Linux";
+  if (ua.includes("Android")) os = "Android";
+  else if (ua.includes("iPhone") || ua.includes("iPad")) os = "iOS";
   else if (ua.includes("Windows")) os = "Windows";
   else if (ua.includes("Mac")) os = "macOS";
-  else if (ua.includes("iPhone") || ua.includes("iPad")) os = "iOS";
-  else if (ua.includes("Android")) os = "Android";
+  else if (ua.includes("Linux")) os = "Linux";
 
   return `${browser} (${os})`;
 }
 
 export function formatDate(epoch: number | undefined): string {
-  if (!epoch) return "—";
+  if (epoch == null) return "—";
   return new Date(epoch * 1000).toLocaleString("en-US", {
     month: "short",
     day: "numeric",

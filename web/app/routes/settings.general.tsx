@@ -1,4 +1,4 @@
-import { Box, Heading, Input, Menu, Switch } from "@chakra-ui/react";
+import { Box, Heading, Switch } from "@chakra-ui/react";
 import { SettingsRow } from "@app/components/settings/settings-row";
 import { SettingsSection } from "@app/components/settings/settings-section";
 import DefaultValidationModePicker from "@app/components/dropdowns/default-validation-mode-picker";

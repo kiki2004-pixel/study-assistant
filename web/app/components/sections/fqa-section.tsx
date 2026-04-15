@@ -1,14 +1,11 @@
 import {
   Accordion,
   Box,
-  Button,
   Container,
   Flex,
   Heading,
   Span,
-  Text,
 } from "@chakra-ui/react";
-import { FiArrowRight } from "react-icons/fi";
 
 interface Question {
   title: string;

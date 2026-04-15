@@ -1,5 +1,5 @@
 import { Badge, Box, Flex, Icon, Text } from "@chakra-ui/react";
-import { FiAlertTriangle, FiCheck, FiX } from "react-icons/fi";
+import { FiAlertTriangle } from "react-icons/fi";
 import type { ValidationResult } from "types/validation";
 
 const STATUS_COLOR: Record<string, string> = {
