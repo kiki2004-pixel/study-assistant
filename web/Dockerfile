@@ -20,7 +20,7 @@ ENV VITE_OIDC_AUTHORITY=$VITE_OIDC_AUTHORITY
 ENV VITE_OIDC_CLIENT_ID=$VITE_OIDC_CLIENT_ID
 ENV VITE_OIDC_REDIRECT_URI=$VITE_OIDC_REDIRECT_URI
 ENV VITE_OIDC_POST_LOGOUT_REDIRECT_URI=$VITE_OIDC_POST_LOGOUT_REDIRECT_URI
-RUN bun run build
+RUN echo 'export * from "./server.node.js"' > node_modules/react-dom/server.bun.js && bun run build
 
 # --- Prod runtime ---
 FROM docker.io/nginx:alpine
