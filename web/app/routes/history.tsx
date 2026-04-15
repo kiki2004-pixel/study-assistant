@@ -10,8 +10,8 @@ import {
   Table,
   Text,
 } from "@chakra-ui/react";
-import { getHistory } from "api/history";
-import type { HistoryPage, HistoryParams } from "types/history";
+import { getHistory, getEmailHistory, getBulkHistory } from "api/history";
+import type { HistoryEntry, HistoryPage, HistoryParams } from "types/history";
 import { StatusBadge } from "@app/components/cards/status-badge";
 import { EmptyStateCard } from "@app/components/cards/empty-state-card";
 import { BulkDrawerCard } from "@app/components/cards/bulk-drawer-card";
@@ -27,8 +27,11 @@ export default function HistorySettings() {
   const [filterValid, setFilterValid] = useState<boolean | undefined>(
     undefined,
   );
-  const [emailSearch, setEmailSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [searchResults, setSearchResults] = useState<HistoryEntry[] | null>(
+    null,
+  );
+  const [searchLoading, setSearchLoading] = useState(false);
   const [activeBulkId, setActiveBulkId] = useState<string | null>(null);
 
   const fetchHistory = useCallback(
@@ -49,12 +52,11 @@ export default function HistorySettings() {
 
   const token = auth.user?.access_token ?? "";
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 1;
-  const isFiltered = filterValid !== undefined || emailSearch !== "";
+  const isSearchActive = searchResults !== null;
+  const isFiltered = filterValid !== undefined || isSearchActive;
 
-  const displayedEntries = emailSearch
-    ? (data?.results ?? []).filter((e) =>
-        e.email.toLowerCase().includes(emailSearch.toLowerCase()),
-      )
+  const displayedEntries = isSearchActive
+    ? searchResults
     : (data?.results ?? []);
 
   function handleFilterToggle(value: boolean | undefined) {
@@ -64,14 +66,25 @@ export default function HistorySettings() {
 
   function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setEmailSearch(searchInput);
-    setPage(1);
+    const query = searchInput.trim();
+    if (!query) return;
+
+    setSearchLoading(true);
+    setSearchResults(null);
+
+    const request = query.includes("@")
+      ? getEmailHistory(token, query)
+      : getBulkHistory(token, query);
+
+    request
+      .then(setSearchResults)
+      .catch(() => setSearchResults([]))
+      .finally(() => setSearchLoading(false));
   }
 
   function handleSearchClear() {
     setSearchInput("");
-    setEmailSearch("");
-    setPage(1);
+    setSearchResults(null);
   }
 
   return (
@@ -97,7 +110,7 @@ export default function HistorySettings() {
       </Text>
 
       {/* Stats */}
-      {data && data.total > 0 && (
+      {data && data.total > 0 && !isSearchActive && (
         <Flex gap={3} mb={6}>
           <Box
             bg="bg.muted"
@@ -167,40 +180,44 @@ export default function HistorySettings() {
 
       {/* Filters */}
       <Flex gap={3} mb={4} align="center" justify="space-between" wrap="wrap">
-        <Flex gap={2}>
-          {(
-            [
-              { label: "All", value: undefined },
-              { label: "Valid", value: true },
-              { label: "Invalid", value: false },
-            ] as { label: string; value: boolean | undefined }[]
-          ).map(({ label, value }) => (
-            <Button
-              key={label}
-              size="sm"
-              borderRadius="full"
-              variant={filterValid === value ? "solid" : "outline"}
-              bg={filterValid === value ? "brand.solid" : undefined}
-              color={filterValid === value ? "brand.contrast" : "fg.muted"}
-              borderColor="border"
-              _hover={{ bg: filterValid === value ? "brand.600" : "bg.muted" }}
-              onClick={() => handleFilterToggle(value)}
-            >
-              {label}
-            </Button>
-          ))}
-        </Flex>
+        {!isSearchActive && (
+          <Flex gap={2}>
+            {(
+              [
+                { label: "All", value: undefined },
+                { label: "Valid", value: true },
+                { label: "Invalid", value: false },
+              ] as { label: string; value: boolean | undefined }[]
+            ).map(({ label, value }) => (
+              <Button
+                key={label}
+                size="sm"
+                borderRadius="full"
+                variant={filterValid === value ? "solid" : "outline"}
+                bg={filterValid === value ? "brand.solid" : undefined}
+                color={filterValid === value ? "brand.contrast" : "fg.muted"}
+                borderColor="border"
+                _hover={{
+                  bg: filterValid === value ? "brand.600" : "bg.muted",
+                }}
+                onClick={() => handleFilterToggle(value)}
+              >
+                {label}
+              </Button>
+            ))}
+          </Flex>
+        )}
 
-        <form onSubmit={handleSearchSubmit}>
+        <form onSubmit={handleSearchSubmit} style={{ marginLeft: "auto" }}>
           <Flex gap={2}>
             <Input
-              placeholder="Search by email…"
+              placeholder="Search by email or request ID…"
               size="sm"
               borderRadius="md"
               borderColor="border"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              w="200px"
+              w="260px"
             />
             <Button
               size="sm"
@@ -208,10 +225,11 @@ export default function HistorySettings() {
               variant="outline"
               borderColor="border"
               borderRadius="md"
+              loading={searchLoading}
             >
               Search
             </Button>
-            {emailSearch && (
+            {isSearchActive && (
               <Button
                 size="sm"
                 variant="ghost"
@@ -225,6 +243,16 @@ export default function HistorySettings() {
         </form>
       </Flex>
 
+      {/* Search label */}
+      {isSearchActive && (
+        <Text fontSize="xs" color="fg.muted" mb={3}>
+          {searchInput.includes("@")
+            ? `All validations for ${searchInput}`
+            : `All results for bulk job ${searchInput.slice(0, 8)}…`}{" "}
+          — {searchResults?.length ?? 0} found
+        </Text>
+      )}
+
       {/* Table */}
       <Box
         bg="bg.subtle"
@@ -233,7 +261,7 @@ export default function HistorySettings() {
         borderRadius="lg"
         overflow="hidden"
       >
-        {loading ? (
+        {loading || searchLoading ? (
           <Flex justify="center" py={16}>
             <Spinner color="brand.solid" />
           </Flex>
@@ -319,8 +347,8 @@ export default function HistorySettings() {
         )}
       </Box>
 
-      {/* Pagination */}
-      {!loading && totalPages > 1 && (
+      {/* Pagination — hidden during search */}
+      {!loading && !isSearchActive && totalPages > 1 && (
         <Flex justify="space-between" align="center" mt={4}>
           <Text fontSize="sm" color="fg.muted">
             Page {page} of {totalPages} — {data?.total ?? 0} total
