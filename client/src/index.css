@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 focus:ring-gray-300;
+  }
+  .btn-danger {
+    @apply btn bg-red-50 text-red-600 hover:bg-red-100 focus:ring-red-400;
+  }
+  .card {
+    @apply bg-white rounded-xl border border-gray-100 shadow-sm;
+  }
+  .input {
+    @apply w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition;
+  }
+  .label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+}
+
+/* Markdown content styles */
+.prose-study h1 { @apply text-2xl font-bold mt-6 mb-3 text-gray-900; }
+.prose-study h2 { @apply text-xl font-semibold mt-5 mb-2 text-gray-800; }
+.prose-study h3 { @apply text-lg font-semibold mt-4 mb-2 text-gray-800; }
+.prose-study p  { @apply mb-3 text-gray-700 leading-relaxed; }
+.prose-study ul { @apply list-disc list-inside mb-3 space-y-1 text-gray-700; }
+.prose-study ol { @apply list-decimal list-inside mb-3 space-y-1 text-gray-700; }
+.prose-study strong { @apply font-semibold text-gray-900; }
+.prose-study code { @apply bg-gray-100 text-indigo-700 px-1.5 py-0.5 rounded text-sm font-mono; }
+.prose-study pre  { @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mb-4; }
+.prose-study hr   { @apply my-4 border-gray-200; }
+.prose-study blockquote { @apply border-l-4 border-indigo-200 pl-4 italic text-gray-600 my-3; }
