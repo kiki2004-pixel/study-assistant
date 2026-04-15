@@ -13,6 +13,6 @@ export default [
     route("general", "routes/settings.general.tsx"),
     route("account", "routes/settings.account.tsx"),
     route("analytics", "routes/settings.analytics.tsx"),
-    route("history", "routes/history.tsx"),
+    route("history", "routes/settings.history.tsx"),
   ]),
 ] satisfies RouteConfig;

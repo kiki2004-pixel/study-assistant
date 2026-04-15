@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Box, Button, Flex, Spinner, Table, Text } from "@chakra-ui/react";
+import { Box, Button, Flex, Spinner, Text } from "@chakra-ui/react";
+import { FiX } from "react-icons/fi";
 import { getBulkHistory } from "api/history";
 import type { HistoryEntry } from "types/history";
-import { StatusBadge } from "./status-badge";
+import { StatusBadge } from "@app/components/badges/status-badge";
 
 export function BulkDrawerCard({
   requestId,
@@ -46,6 +47,7 @@ export function BulkDrawerCard({
         overflowY="auto"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Header */}
         <Box
           px={6}
           py={5}
@@ -78,7 +80,7 @@ export function BulkDrawerCard({
               </Text>
             </Box>
             <Button size="sm" variant="ghost" onClick={onClose} mt={-1}>
-              ✕
+              <FiX />
             </Button>
           </Flex>
 
@@ -151,6 +153,7 @@ export function BulkDrawerCard({
           )}
         </Box>
 
+        {/* Entry list */}
         <Box px={6} py={4}>
           {loading ? (
             <Flex justify="center" py={10}>
@@ -161,49 +164,52 @@ export function BulkDrawerCard({
               No results found.
             </Text>
           ) : (
-            <Table.Root size="sm">
-              <Table.Header>
-                <Table.Row>
-                  {["Email", "Status", "Score"].map((col) => (
-                    <Table.ColumnHeader
-                      key={col}
+            <Flex direction="column" gap={1}>
+              {entries.map((e) => (
+                <Flex
+                  key={e.id}
+                  align="center"
+                  justify="space-between"
+                  gap={3}
+                  py={2}
+                  borderBottomWidth="1px"
+                  borderColor="border"
+                  _last={{ borderBottomWidth: 0 }}
+                >
+                  <Flex align="center" gap={2.5} flex={1} minW={0}>
+                    <Box
+                      w={1.5}
+                      h={1.5}
+                      borderRadius="full"
+                      bg={e.is_valid ? "valid.fg" : "invalid.fg"}
+                      flexShrink={0}
+                    />
+                    <Text
                       fontSize="xs"
-                      color="fg.muted"
-                      textTransform="uppercase"
-                      letterSpacing="0.06em"
-                    >
-                      {col}
-                    </Table.ColumnHeader>
-                  ))}
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {entries.map((e) => (
-                  <Table.Row key={e.id}>
-                    <Table.Cell
                       fontFamily="Geist Mono, monospace"
-                      fontSize="xs"
-                      maxW="200px"
-                      overflow="hidden"
-                      textOverflow="ellipsis"
-                      whiteSpace="nowrap"
+                      color="fg"
+                      truncate
                     >
                       {e.email}
-                    </Table.Cell>
-                    <Table.Cell>
-                      <StatusBadge isValid={e.is_valid} />
-                    </Table.Cell>
-                    <Table.Cell
-                      fontFamily="Geist Mono, monospace"
-                      fontSize="xs"
-                      color="fg.muted"
-                    >
-                      {e.quality_score ?? "—"}
-                    </Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table.Root>
+                    </Text>
+                  </Flex>
+                  <Flex align="center" gap={3} flexShrink={0}>
+                    <StatusBadge isValid={e.is_valid} />
+                    {e.quality_score != null && (
+                      <Text
+                        fontSize="xs"
+                        fontFamily="Geist Mono, monospace"
+                        color="fg.muted"
+                        w="32px"
+                        textAlign="right"
+                      >
+                        {e.quality_score}
+                      </Text>
+                    )}
+                  </Flex>
+                </Flex>
+              ))}
+            </Flex>
           )}
         </Box>
       </Box>

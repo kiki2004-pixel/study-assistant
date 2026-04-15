@@ -3,7 +3,6 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 
-from scrub.auth import verify_token
 from scrub.models.history import DeleteHistoryResponse, HistoryEntry, HistoryPage
 from scrub.storage.history_store import HistoryRecord, HistoryStore
 from scrub.settings import settings
@@ -35,7 +34,6 @@ async def list_history(
     page_size: int = Query(100, ge=1, le=1000),
     is_valid: Optional[bool] = Query(None),
     store: HistoryStore = Depends(get_history_store),
-    _: dict = Depends(verify_token),
 ):
     """Return paginated validation history, newest first."""
     records, total = store.get_history(page=page, page_size=page_size, is_valid=is_valid)
@@ -51,7 +49,6 @@ async def list_history(
 async def get_bulk_history(
     request_id: str,
     store: HistoryStore = Depends(get_history_store),
-    _: dict = Depends(verify_token),
 ):
     """Return all validation results for a bulk job."""
     records = store.get_by_request_id(request_id)
@@ -64,7 +61,6 @@ async def get_bulk_history(
 async def get_email_history(
     email: str,
     store: HistoryStore = Depends(get_history_store),
-    _: dict = Depends(verify_token),
 ):
     """Return validation history for a specific email address."""
     records = store.get_by_email(email)
@@ -77,7 +73,6 @@ async def get_email_history(
 async def delete_email_history(
     email: str,
     store: HistoryStore = Depends(get_history_store),
-    _: dict = Depends(verify_token),
 ):
     """Delete all history for an email address (GDPR right-to-erasure)."""
     deleted = store.delete_by_email(email)

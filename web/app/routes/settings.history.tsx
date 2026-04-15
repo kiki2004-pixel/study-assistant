@@ -5,18 +5,24 @@ import {
   Button,
   Flex,
   Heading,
-  Input,
+  Pagination,
   Spinner,
-  Table,
   Text,
 } from "@chakra-ui/react";
 import { getHistory, getEmailHistory, getBulkHistory } from "api/history";
 import type { HistoryEntry, HistoryPage, HistoryParams } from "types/history";
-import { StatusBadge } from "@app/components/cards/status-badge";
+import { StatusBadge } from "@app/components/badges/status-badge";
 import { EmptyStateCard } from "@app/components/cards/empty-state-card";
 import { BulkDrawerCard } from "@app/components/cards/bulk-drawer-card";
+import { HistorySearchForm } from "@app/components/forms/history-search-form";
 
 const PAGE_SIZE = 20;
+
+const FILTERS: { label: string; value: boolean | undefined }[] = [
+  { label: "All", value: undefined },
+  { label: "Valid", value: true },
+  { label: "Invalid", value: false },
+];
 
 export default function HistorySettings() {
   const auth = useAuth();
@@ -34,6 +40,8 @@ export default function HistorySettings() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [activeBulkId, setActiveBulkId] = useState<string | null>(null);
 
+  const token = auth.user?.access_token ?? "";
+
   const fetchHistory = useCallback(
     (params: HistoryParams) => {
       if (!auth.user?.access_token) return;
@@ -50,11 +58,9 @@ export default function HistorySettings() {
     fetchHistory({ page, page_size: PAGE_SIZE, is_valid: filterValid });
   }, [page, filterValid, fetchHistory]);
 
-  const token = auth.user?.access_token ?? "";
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 1;
   const isSearchActive = searchResults !== null;
   const isFiltered = filterValid !== undefined || isSearchActive;
-
   const displayedEntries = isSearchActive
     ? searchResults
     : (data?.results ?? []);
@@ -178,17 +184,11 @@ export default function HistorySettings() {
         </Flex>
       )}
 
-      {/* Filters */}
+      {/* Filters + Search */}
       <Flex gap={3} mb={4} align="center" justify="space-between" wrap="wrap">
         {!isSearchActive && (
           <Flex gap={2}>
-            {(
-              [
-                { label: "All", value: undefined },
-                { label: "Valid", value: true },
-                { label: "Invalid", value: false },
-              ] as { label: string; value: boolean | undefined }[]
-            ).map(({ label, value }) => (
+            {FILTERS.map(({ label, value }) => (
               <Button
                 key={label}
                 size="sm"
@@ -208,39 +208,16 @@ export default function HistorySettings() {
           </Flex>
         )}
 
-        <form onSubmit={handleSearchSubmit} style={{ marginLeft: "auto" }}>
-          <Flex gap={2}>
-            <Input
-              placeholder="Search by email or request ID…"
-              size="sm"
-              borderRadius="md"
-              borderColor="border"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              w="260px"
-            />
-            <Button
-              size="sm"
-              type="submit"
-              variant="outline"
-              borderColor="border"
-              borderRadius="md"
-              loading={searchLoading}
-            >
-              Search
-            </Button>
-            {isSearchActive && (
-              <Button
-                size="sm"
-                variant="ghost"
-                borderRadius="md"
-                onClick={handleSearchClear}
-              >
-                Clear
-              </Button>
-            )}
-          </Flex>
-        </form>
+        <Box ml="auto">
+          <HistorySearchForm
+            value={searchInput}
+            onChange={setSearchInput}
+            onSubmit={handleSearchSubmit}
+            onClear={handleSearchClear}
+            isActive={isSearchActive}
+            loading={searchLoading}
+          />
+        </Box>
       </Flex>
 
       {/* Search label */}
@@ -253,7 +230,7 @@ export default function HistorySettings() {
         </Text>
       )}
 
-      {/* Table */}
+      {/* List */}
       <Box
         bg="bg.subtle"
         border="1px solid"
@@ -268,82 +245,150 @@ export default function HistorySettings() {
         ) : displayedEntries.length === 0 ? (
           <EmptyStateCard filtered={isFiltered} />
         ) : (
-          <Table.Root size="md">
-            <Table.Header>
-              <Table.Row bg="bg.muted">
-                {["Email", "Status", "Score", "Validated At", "Bulk Job"].map(
-                  (col) => (
-                    <Table.ColumnHeader
-                      key={col}
-                      fontSize="xs"
-                      fontWeight={500}
-                      letterSpacing="0.08em"
-                      textTransform="uppercase"
-                      color="fg.muted"
-                      py={3}
-                      px={col === "Email" || col === "Bulk Job" ? 4 : undefined}
-                    >
-                      {col}
-                    </Table.ColumnHeader>
-                  ),
-                )}
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {displayedEntries.map((entry) => (
-                <Table.Row
-                  key={entry.id}
-                  _hover={{ bg: "bg.muted" }}
-                  transition="background 0.1s"
-                >
-                  <Table.Cell
-                    px={4}
-                    fontFamily="Geist Mono, monospace"
+          <Flex direction="column">
+            {/* Column headers */}
+            <Flex
+              px={4}
+              py={2}
+              bg="bg.muted"
+              borderBottomWidth="1px"
+              borderColor="border"
+              gap={3}
+            >
+              <Text
+                fontSize="xs"
+                fontWeight={500}
+                letterSpacing="0.08em"
+                textTransform="uppercase"
+                color="fg.muted"
+                flex={1}
+              >
+                Email
+              </Text>
+              <Text
+                fontSize="xs"
+                fontWeight={500}
+                letterSpacing="0.08em"
+                textTransform="uppercase"
+                color="fg.muted"
+                w="72px"
+              >
+                Status
+              </Text>
+              <Text
+                fontSize="xs"
+                fontWeight={500}
+                letterSpacing="0.08em"
+                textTransform="uppercase"
+                color="fg.muted"
+                w="48px"
+                textAlign="right"
+              >
+                Score
+              </Text>
+              <Text
+                fontSize="xs"
+                fontWeight={500}
+                letterSpacing="0.08em"
+                textTransform="uppercase"
+                color="fg.muted"
+                w="140px"
+              >
+                Validated At
+              </Text>
+              <Text
+                fontSize="xs"
+                fontWeight={500}
+                letterSpacing="0.08em"
+                textTransform="uppercase"
+                color="fg.muted"
+                w="80px"
+              >
+                Bulk Job
+              </Text>
+            </Flex>
+
+            {displayedEntries.map((entry) => (
+              <Flex
+                key={entry.id}
+                px={4}
+                py={3}
+                gap={3}
+                align="center"
+                borderBottomWidth="1px"
+                borderColor="border"
+                _last={{ borderBottomWidth: 0 }}
+                _hover={{ bg: "bg.muted" }}
+                transition="background 0.1s"
+              >
+                {/* Email */}
+                <Flex align="center" gap={2.5} flex={1} minW={0}>
+                  <Box
+                    w={1.5}
+                    h={1.5}
+                    borderRadius="full"
+                    bg={entry.is_valid ? "valid.fg" : "invalid.fg"}
+                    flexShrink={0}
+                  />
+                  <Text
                     fontSize="sm"
+                    fontFamily="Geist Mono, monospace"
                     fontWeight={500}
+                    color="fg"
+                    truncate
                   >
                     {entry.email}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <StatusBadge isValid={entry.is_valid} />
-                  </Table.Cell>
-                  <Table.Cell
-                    fontFamily="Geist Mono, monospace"
-                    fontSize="sm"
-                    color="fg.muted"
-                  >
-                    {entry.quality_score ?? "—"}
-                  </Table.Cell>
-                  <Table.Cell fontSize="sm" color="fg.muted">
-                    {new Date(entry.validated_at).toLocaleString(undefined, {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </Table.Cell>
-                  <Table.Cell px={4}>
-                    {entry.request_id ? (
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        borderRadius="md"
-                        fontFamily="Geist Mono, monospace"
-                        fontSize="xs"
-                        color="fg.muted"
-                        _hover={{ color: "fg", bg: "bg.muted" }}
-                        onClick={() => setActiveBulkId(entry.request_id!)}
-                      >
-                        {entry.request_id.slice(0, 8)}…
-                      </Button>
-                    ) : (
-                      <Text fontSize="sm" color="fg.muted">
-                        —
-                      </Text>
-                    )}
-                  </Table.Cell>
-                </Table.Row>
-              ))}
-            </Table.Body>
-          </Table.Root>
+                  </Text>
+                </Flex>
+
+                {/* Status */}
+                <Box w="72px">
+                  <StatusBadge isValid={entry.is_valid} />
+                </Box>
+
+                {/* Score */}
+                <Text
+                  fontSize="sm"
+                  fontFamily="Geist Mono, monospace"
+                  color="fg.muted"
+                  w="48px"
+                  textAlign="right"
+                >
+                  {entry.quality_score ?? "—"}
+                </Text>
+
+                {/* Validated At */}
+                <Text fontSize="xs" color="fg.muted" w="140px">
+                  {new Date(entry.validated_at).toLocaleString(undefined, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                </Text>
+
+                {/* Bulk Job */}
+                <Box w="80px">
+                  {entry.request_id ? (
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      borderRadius="md"
+                      fontFamily="Geist Mono, monospace"
+                      fontSize="xs"
+                      color="fg.muted"
+                      _hover={{ color: "fg", bg: "bg.muted" }}
+                      onClick={() => setActiveBulkId(entry.request_id!)}
+                    >
+                      {entry.request_id.slice(0, 8)}…
+                    </Button>
+                  ) : (
+                    <Text fontSize="sm" color="fg.muted">
+                      —
+                    </Text>
+                  )}
+                </Box>
+              </Flex>
+            ))}
+          </Flex>
         )}
       </Box>
 
@@ -353,28 +398,35 @@ export default function HistorySettings() {
           <Text fontSize="sm" color="fg.muted">
             Page {page} of {totalPages} — {data?.total ?? 0} total
           </Text>
-          <Flex gap={2}>
-            <Button
-              size="sm"
-              variant="outline"
-              borderRadius="md"
-              borderColor="border"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-            >
-              Previous
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              borderRadius="md"
-              borderColor="border"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </Flex>
+          <Pagination.Root
+            count={data?.total ?? 0}
+            pageSize={PAGE_SIZE}
+            page={page}
+            onPageChange={(details) => setPage(details.page)}
+          >
+            <Flex gap={1}>
+              <Pagination.PrevTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  borderRadius="md"
+                  borderColor="border"
+                >
+                  Previous
+                </Button>
+              </Pagination.PrevTrigger>
+              <Pagination.NextTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  borderRadius="md"
+                  borderColor="border"
+                >
+                  Next
+                </Button>
+              </Pagination.NextTrigger>
+            </Flex>
+          </Pagination.Root>
         </Flex>
       )}
     </Box>
