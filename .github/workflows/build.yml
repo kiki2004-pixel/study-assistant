@@ -34,6 +34,12 @@ jobs:
       web_changed: ${{ steps.out.outputs.web_changed }}
       api_tag: ${{ steps.out.outputs.api_tag }}
       web_tag: ${{ steps.out.outputs.web_tag }}
+      environment: ${{ steps.out.outputs.environment }}
+      deploy_url: ${{ steps.out.outputs.deploy_url }}
+      vite_oidc_authority: ${{ steps.out.outputs.vite_oidc_authority }}
+      vite_oidc_client_id: ${{ steps.out.outputs.vite_oidc_client_id }}
+      vite_oidc_redirect_uri: ${{ steps.out.outputs.vite_oidc_redirect_uri }}
+      vite_oidc_post_logout_redirect_uri: ${{ steps.out.outputs.vite_oidc_post_logout_redirect_uri }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -73,10 +79,23 @@ jobs:
           if [[ "$BRANCH" == "main" ]]; then
             echo "api_tag=${API_VERSION}-alpha" >> "$GITHUB_OUTPUT"
             echo "web_tag=${WEB_VERSION}-alpha" >> "$GITHUB_OUTPUT"
+            APP_URL="https://dev.thescrub.app"
+            echo "environment=Development" >> "$GITHUB_OUTPUT"
+            echo "deploy_url=${APP_URL}" >> "$GITHUB_OUTPUT"
+            echo "vite_oidc_authority=https://id.nerdzero.rocks" >> "$GITHUB_OUTPUT"
+            echo "vite_oidc_client_id=368708762225149041" >> "$GITHUB_OUTPUT"
           else
             echo "api_tag=${API_VERSION}" >> "$GITHUB_OUTPUT"
             echo "web_tag=${WEB_VERSION}" >> "$GITHUB_OUTPUT"
+            APP_URL="https://thescrub.app"
+            echo "environment=Production" >> "$GITHUB_OUTPUT"
+            echo "deploy_url=${APP_URL}" >> "$GITHUB_OUTPUT"
+            echo "vite_oidc_authority=https://id.thescrub.app" >> "$GITHUB_OUTPUT"
+            echo "vite_oidc_client_id=368708762225149041" >> "$GITHUB_OUTPUT"
           fi
+
+          echo "vite_oidc_redirect_uri=${APP_URL}/auth/callback" >> "$GITHUB_OUTPUT"
+          echo "vite_oidc_post_logout_redirect_uri=${APP_URL}" >> "$GITHUB_OUTPUT"
 
           echo "api_changed=${api_changed}" >> "$GITHUB_OUTPUT"
           echo "web_changed=${web_changed}" >> "$GITHUB_OUTPUT"
@@ -144,6 +163,9 @@ jobs:
     needs: [detect, validate]
     if: needs.detect.outputs.web_changed == 'true'
     runs-on: ubuntu-24.04
+    environment:
+      name: ${{ needs.detect.outputs.environment }}
+      url: ${{ needs.detect.outputs.deploy_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -164,9 +186,9 @@ jobs:
           push: true
           tags: ghcr.io/nerd-zero/scrub:${{ needs.detect.outputs.web_tag }}
           build-args: |
-            VITE_OIDC_AUTHORITY=https://id.nerdzero.rocks
-            VITE_OIDC_CLIENT_ID=368708762225149041
-            VITE_OIDC_REDIRECT_URI=https://dev.thescrub.app/auth/callback
-            VITE_OIDC_POST_LOGOUT_REDIRECT_URI=https://dev.thescrub.app
+            VITE_OIDC_AUTHORITY=${{ needs.detect.outputs.vite_oidc_authority }}
+            VITE_OIDC_CLIENT_ID=${{ needs.detect.outputs.vite_oidc_client_id }}
+            VITE_OIDC_REDIRECT_URI=${{ needs.detect.outputs.vite_oidc_redirect_uri }}
+            VITE_OIDC_POST_LOGOUT_REDIRECT_URI=${{ needs.detect.outputs.vite_oidc_post_logout_redirect_uri }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
