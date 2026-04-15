@@ -12,5 +12,11 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/backend/, ""),
       },
     },
+    allowedHosts: ["local-app.homwe.app", "homwe.test"],
+  },
+  resolve: {
+    alias: process.env.DOCKER_BUILD
+      ? { "react-dom/server": "react-dom/server.node" }
+      : {},
   },
 });

@@ -164,9 +164,9 @@ jobs:
           push: true
           tags: ghcr.io/nerd-zero/scrub:${{ needs.detect.outputs.web_tag }}
           build-args: |
-            VITE_OIDC_AUTHORITY=${{ secrets.VITE_OIDC_AUTHORITY }}
-            VITE_OIDC_CLIENT_ID=${{ secrets.VITE_OIDC_CLIENT_ID }}
-            VITE_OIDC_REDIRECT_URI=${{ secrets.VITE_OIDC_REDIRECT_URI }}
-            VITE_OIDC_POST_LOGOUT_REDIRECT_URI=${{ secrets.VITE_OIDC_POST_LOGOUT_REDIRECT_URI }}
+            VITE_OIDC_AUTHORITY=https://id.nerdzero.rocks
+            VITE_OIDC_CLIENT_ID=368708762225149041
+            VITE_OIDC_REDIRECT_URI=https://dev.thescrub.app/auth/callback
+            VITE_OIDC_POST_LOGOUT_REDIRECT_URI=https://dev.thescrub.app
           cache-from: type=gha
           cache-to: type=gha,mode=max
