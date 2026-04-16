@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { Box, Button, Dialog, Flex, Input, Text } from "@chakra-ui/react";
 import { FiCheck } from "react-icons/fi";
 import {
-  type Integration,
   deleteListmonkIntegration,
   saveListmonkIntegration,
   testListmonkIntegration,
 } from "api/integrations";
+import type { Integration } from "@types/integrations";
 
 interface ConnectListmonkModalProps {
   open: boolean;
@@ -63,13 +63,19 @@ export function ConnectListmonkModal({
     setError(null);
 
     try {
-      const integration = await saveListmonkIntegration(trimmedUrl, trimmedUsername, trimmedToken);
+      const integration = await saveListmonkIntegration(
+        trimmedUrl,
+        trimmedUsername,
+        trimmedToken,
+      );
       const test = await testListmonkIntegration();
       if (!test.success) {
         try {
           await deleteListmonkIntegration();
         } catch {}
-        setError(test.message || "Connection test failed. Check your API token.");
+        setError(
+          test.message || "Connection test failed. Check your API token.",
+        );
         return;
       }
       setConnected({ integration, subscriberCount: test.subscriber_count });

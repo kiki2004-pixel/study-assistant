@@ -5,30 +5,21 @@ import {
   Button,
   Container,
   Flex,
-  Grid,
   Heading,
   Text,
 } from "@chakra-ui/react";
 import { FiCheck, FiList } from "react-icons/fi";
+import { Link } from "react-router";
 import {
   deleteListmonkIntegration,
   getListmonkIntegration,
-  getListmonkLists,
 } from "api/integrations";
 import { ConnectListmonkModal } from "@app/components/modals/connect-listmonk-modal";
-import { ListmonkListCard } from "@app/components/lists/listmonk-list-card";
 import type { Integration } from "@types/integrations";
-
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
 
 export default function Integrations() {
   const [integration, setIntegration] = useState<Integration | null>(null);
-  const [lists, setLists] = useState<ListmonkList[]>([]);
   const [loadingIntegration, setLoadingIntegration] = useState(true);
-  const [loadingLists, setLoadingLists] = useState(false);
-  const [listsError, setListsError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
@@ -40,25 +31,11 @@ export default function Integrations() {
       .finally(() => setLoadingIntegration(false));
   }, []);
 
-  useEffect(() => {
-    if (!integration) {
-      setLists([]);
-      return;
-    }
-    setLoadingLists(true);
-    setListsError(null);
-    getListmonkLists()
-      .then(setLists)
-      .catch((e) => setListsError(e.message))
-      .finally(() => setLoadingLists(false));
-  }, [integration]);
-
   async function handleDisconnect() {
     setDisconnecting(true);
     try {
       await deleteListmonkIntegration();
       setIntegration(null);
-      setLists([]);
       setConfirmDisconnect(false);
     } catch {
       // leave state unchanged
@@ -74,6 +51,7 @@ export default function Integrations() {
         <Heading
           fontSize={{ base: "2xl", md: "3xl" }}
           fontWeight="400"
+          fontFamily="mono"
           letterSpacing="-0.02em"
           mb={1}
         >
@@ -162,10 +140,21 @@ export default function Integrations() {
                     {integration.url}
                   </Text>
                   <Flex align="center" gap={2}>
+                    <Button
+                      asChild
+                      size="xs"
+                      bg="fg"
+                      color="bg"
+                      borderRadius="md"
+                      fontWeight="500"
+                      _hover={{ opacity: 0.85 }}
+                    >
+                      <Link to="/integrations/listmonk">Manage</Link>
+                    </Button>
                     {confirmDisconnect ? (
                       <>
                         <Text fontSize="xs" color="fg.muted">
-                          Disconnect Listmonk?
+                          Disconnect?
                         </Text>
                         <Button
                           size="xs"
@@ -225,79 +214,6 @@ export default function Integrations() {
             </Box>
           </Flex>
         </Box>
-
-        {/* Lists section — shown when connected */}
-        {integration && (
-          <Box mt={8}>
-            <Text
-              fontSize="xs"
-              fontWeight="500"
-              color="fg.muted"
-              mb={3}
-              textTransform="uppercase"
-              letterSpacing="0.06em"
-            >
-              Lists
-            </Text>
-
-            {loadingLists ? (
-              <Box
-                borderWidth="1px"
-                borderColor="border"
-                borderRadius="md"
-                px={4}
-                py={6}
-              >
-                <Text fontSize="sm" color="fg.muted" textAlign="center">
-                  Loading lists…
-                </Text>
-              </Box>
-            ) : listsError ? (
-              <Box
-                borderWidth="1px"
-                borderColor="border"
-                borderRadius="md"
-                px={4}
-                py={6}
-              >
-                <Text fontSize="sm" color="red.500" textAlign="center">
-                  {listsError}
-                </Text>
-              </Box>
-            ) : lists.length === 0 ? (
-              <Flex
-                direction="column"
-                align="center"
-                gap={2}
-                borderWidth="1px"
-                borderColor="border"
-                borderRadius="md"
-                borderStyle="dashed"
-                py={10}
-              >
-                <Box color="fg.muted">
-                  <FiList size={20} />
-                </Box>
-                <Text fontSize="sm" color="fg.muted">
-                  No lists found in your Listmonk instance.
-                </Text>
-              </Flex>
-            ) : (
-              <Grid
-                templateColumns={{
-                  base: "1fr",
-                  sm: "repeat(2, 1fr)",
-                  md: "repeat(3, 1fr)",
-                }}
-                gap={3}
-              >
-                {lists.map((list) => (
-                  <ListmonkListCard key={list.id} list={list} />
-                ))}
-              </Grid>
-            )}
-          </Box>
-        )}
       </Box>
 
       <ConnectListmonkModal

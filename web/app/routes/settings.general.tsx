@@ -9,6 +9,7 @@ export default function GeneralSettings() {
       <Heading
         fontSize={{ base: "xl", md: "2xl" }}
         fontWeight="400"
+        fontFamily="mono"
         letterSpacing="-0.02em"
         mb={8}
       >

@@ -20,7 +20,8 @@ export default function Settings() {
         <Box flexShrink={0} w={{ base: "full", md: "180px" }}>
           <Heading
             fontSize="lg"
-            fontWeight="600"
+            fontWeight="500"
+            fontFamily="mono"
             letterSpacing="-0.01em"
             mb={5}
             display={{ base: "none", md: "block" }}

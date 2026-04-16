@@ -30,6 +30,7 @@ export default function AccountSettings() {
         fontSize={{ base: "xl", md: "2xl" }}
         fontWeight="400"
         letterSpacing="-0.02em"
+        fontFamily="mono"
         mb={8}
       >
         Account
@@ -74,7 +75,7 @@ export default function AccountSettings() {
 
       {/* Active sessions */}
       <Box>
-        <Heading fontSize="md" fontWeight="600" letterSpacing="-0.01em" mb={5}>
+        <Heading fontSize="md" fontWeight="500" fontFamily="mono" letterSpacing="-0.01em" mb={5}>
           Active sessions
         </Heading>
 

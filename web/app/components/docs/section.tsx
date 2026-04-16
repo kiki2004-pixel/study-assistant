@@ -19,6 +19,7 @@ export function Section({
         pb={3}
         borderBottomWidth="1px"
         borderColor="border"
+        fontFamily="mono"
       >
         {title}
       </Heading>

@@ -12,7 +12,12 @@ export function SettingsSection({
   return (
     <Box mb={10}>
       <Box mb={5} pb={3} borderBottomWidth="1px" borderColor="border">
-        <Heading fontSize="md" fontWeight="600" letterSpacing="-0.01em">
+        <Heading
+          fontSize="md"
+          fontWeight="600"
+          letterSpacing="-0.01em"
+          fontFamily="mono"
+        >
           {title}
         </Heading>
         {description && (

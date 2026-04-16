@@ -176,6 +176,7 @@ export default function ApiKeysPage() {
           <Heading
             fontSize={{ base: "2xl", md: "3xl" }}
             fontWeight="400"
+            fontFamily="mono"
             letterSpacing="-0.02em"
             mb={1}
           >
