@@ -1,20 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Security
-from fastapi.security import APIKeyHeader
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, HttpUrl
 
+from scrub.auth import verify_api_key
 from scrub.settings import settings, block_ssrf
 from scrub.storage.webhook_store import WebhookStore
 
 router = APIRouter()
-
-# Auth
-API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=True)
-
-
-def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> str:
-    if api_key != settings.api_key:
-        raise HTTPException(status_code=403, detail="Invalid or missing API key.")
-    return api_key
 
 
 # Dependency
@@ -51,7 +42,7 @@ class WebhookListItem(BaseModel):
 async def register_webhook(
     payload: RegisterWebhookRequest,
     store: WebhookStore = Depends(get_webhook_store),
-    _: str = Depends(verify_api_key),
+    _: dict = Depends(verify_api_key),
 ):
     block_ssrf(payload.url)
     reg = store.register(str(payload.url))
@@ -66,7 +57,7 @@ async def register_webhook(
 async def deregister_webhook(
     url: HttpUrl,
     store: WebhookStore = Depends(get_webhook_store),
-    _: str = Depends(verify_api_key),
+    _: dict = Depends(verify_api_key),
 ):
     removed = store.deregister(str(url))
     if not removed:
@@ -77,7 +68,7 @@ async def deregister_webhook(
 @router.get("/list", response_model=list[WebhookListItem])
 async def list_webhooks(
     store: WebhookStore = Depends(get_webhook_store),
-    _: str = Depends(verify_api_key),
+    _: dict = Depends(verify_api_key),
 ):
     return [
         WebhookListItem(

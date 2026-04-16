@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 
+from scrub.auth import verify_api_key
 from scrub.models.history import DeleteHistoryResponse, HistoryEntry, HistoryPage
 from scrub.storage.history_store import HistoryRecord, HistoryStore
 from scrub.settings import settings
@@ -36,10 +37,12 @@ async def list_history(
     email: Optional[str] = Query(None),
     request_id: Optional[str] = Query(None),
     store: HistoryStore = Depends(get_history_store),
+    caller: dict = Depends(verify_api_key),
+
 ):
-    """Return paginated validation history, newest first."""
+    """Return paginated validation history for the authenticated user, newest first."""
     records, total = store.get_history(
-        page=page, page_size=page_size, is_valid=is_valid
+        user_id=caller["sub"], page=page, page_size=page_size, is_valid=is_valid
     )
     return HistoryPage(
         total=total,
@@ -53,9 +56,11 @@ async def list_history(
 async def get_bulk_history(
     request_id: str,
     store: HistoryStore = Depends(get_history_store),
+    caller: dict = Depends(verify_api_key),
+
 ):
-    """Return all validation results for a bulk job."""
-    records = store.get_by_request_id(request_id)
+    """Return all validation results for a bulk job owned by the authenticated user."""
+    records = store.get_by_request_id(request_id=request_id, user_id=caller["sub"])
     if not records:
         raise HTTPException(
             status_code=404, detail="No history found for this request_id"
@@ -67,9 +72,11 @@ async def get_bulk_history(
 async def get_email_history(
     email: str,
     store: HistoryStore = Depends(get_history_store),
+    caller: dict = Depends(verify_api_key),
+
 ):
-    """Return validation history for a specific email address."""
-    records = store.get_by_email(email)
+    """Return validation history for a specific email address owned by the authenticated user."""
+    records = store.get_by_email(email=email, user_id=caller["sub"])
     if not records:
         raise HTTPException(status_code=404, detail="No history found for this email")
     return [_to_entry(r) for r in records]
@@ -79,7 +86,9 @@ async def get_email_history(
 async def delete_email_history(
     email: str,
     store: HistoryStore = Depends(get_history_store),
+    caller: dict = Depends(verify_api_key),
+
 ):
-    """Delete all history for an email address (GDPR right-to-erasure)."""
-    deleted = store.delete_by_email(email)
+    """Delete history for an email address (GDPR right-to-erasure). Scoped to authenticated user."""
+    deleted = store.delete_by_email(email=email, user_id=caller["sub"])
     return DeleteHistoryResponse(email=email, deleted=deleted)

@@ -6,7 +6,7 @@ from prometheus_client import Counter, Histogram
 import logging
 import uuid
 
-from scrub.auth import verify_token
+from scrub.auth import verify_any_auth
 from scrub.services.validation_service import validate_email_internal
 from scrub.services.webhook_service import dispatch_webhook
 from scrub.storage.user_store import UserStore
@@ -94,7 +94,7 @@ async def validate_single(
     email: EmailStr = Query(..., description="The email address to verify"),
     webhook_store: WebhookStore = Depends(get_webhook_store),
     history_store: HistoryStore = Depends(get_history_store),
-    user_claims: dict = Depends(verify_token),
+    user_claims: dict = Depends(verify_any_auth),
     user_store: UserStore = Depends(get_user_store),
 ):
     """
@@ -126,6 +126,7 @@ async def validate_single(
         quality_score=result.get("quality_score"),
         checks=result.get("checks"),
         attributes=result.get("attributes"),
+        user_id=user_claims.get("sub"),
     )
 
     # Fire webhook after response is sent — FastAPI BackgroundTasks manages
@@ -156,7 +157,7 @@ async def validate_bulk(
     payload: BulkValidationRequest,
     webhook_store: WebhookStore = Depends(get_webhook_store),
     history_store: HistoryStore = Depends(get_history_store),
-    user_claims: dict = Depends(verify_token),
+    user_claims: dict = Depends(verify_any_auth),
     user_store: UserStore = Depends(get_user_store),
 ):
     """
@@ -212,7 +213,12 @@ async def validate_bulk(
                     details={"message": "Unexpected validation error."},
                 )
                 history_entries.append(
-                    {"email": email, "is_valid": False, "request_id": request_id}
+                    {
+                        "email": email,
+                        "is_valid": False,
+                        "request_id": request_id,
+                        "user_id": user_claims.get("sub"),
+                    }
                 )
                 if payload.response_mode in ("all", "invalid_only"):
                     results.append(item)
@@ -242,6 +248,7 @@ async def validate_bulk(
                         "checks": r.get("checks"),
                         "attributes": r.get("attributes"),
                         "request_id": request_id,
+                        "user_id": user_claims.get("sub"),
                     }
                 )
                 if payload.response_mode in ("all", "invalid_only"):
@@ -266,6 +273,7 @@ async def validate_bulk(
                     "checks": r.get("checks"),
                     "attributes": r.get("attributes"),
                     "request_id": request_id,
+                    "user_id": user_claims.get("sub"),
                 }
             )
             if payload.response_mode == "all":

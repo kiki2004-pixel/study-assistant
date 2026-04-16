@@ -15,15 +15,16 @@ class Settings(BaseSettings):
     # API Key
     api_key: str = ""
 
+    # CORS — comma-separated list of allowed origins
+    cors_allowed_origins: str = "http://localhost:5173"
+
     # Zitadel Auth
     zitadel_domain: str = "http://localhost:8080"
+    zitadel_jwks_url: str = "http://localhost:8080/oauth/v2/keys"
+    zitadel_client_id: str = ""
 
-    # Listmonk Integration
-    listmonk_url: str = "http://localhost:9000"
-    listmonk_user: str = ""
-    listmonk_pass: str = ""
-    listmonk_list_id: str = ""
-    listmonk_exclude_name_substrings: str = ""
+    # Postmark webhook
+    postmark_webhook_secret: str = ""
 
     # Sentry
     sentry_dsn: str = ""

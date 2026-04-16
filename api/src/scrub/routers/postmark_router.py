@@ -1,3 +1,4 @@
+import hmac
 import json
 from fastapi import APIRouter, Request, Header, HTTPException
 from prometheus_client import Counter
@@ -21,7 +22,9 @@ async def postmark_webhook(request: Request, x_postmark_secret: str = Header(Non
     """
     # 1. Security Check
     # We use a formal check instead of assert for production safety (PEP 668)
-    if x_postmark_secret != settings.postmark_webhook_secret:
+    expected = settings.postmark_webhook_secret
+    incoming = x_postmark_secret or ""
+    if not expected or not hmac.compare_digest(incoming, expected):
         raise HTTPException(
             status_code=401, detail="Unauthorized: Invalid Webhook Secret"
         )

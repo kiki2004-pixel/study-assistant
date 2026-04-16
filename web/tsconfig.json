@@ -16,6 +16,7 @@
     "paths": {
       "@app/*": ["./app/*"],
       "@lib/*": ["./lib/*"],
+      "@types/*": ["./types/*"],
       "api/*": ["./api/*"]
     },
     "esModuleInterop": true,

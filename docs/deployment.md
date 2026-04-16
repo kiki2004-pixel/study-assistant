@@ -1,134 +1,181 @@
 # Deployment
 
-## Environment files
+## Local development
 
-The monorepo uses three env files:
+### Prerequisites
 
-| File | Purpose | Who reads it |
-|------|---------|-------------|
-| `.env` | Infrastructure vars (Grafana, Listmonk bootstrap) | docker-compose auto-load |
-| `server/.env` | Backend vars (API key, Listmonk connection, Celery, DB) | `scrub` + `celery-worker` containers |
-| `web/.env` | Frontend OIDC vars (dev only — baked into build in CI) | Vite dev server |
+- Docker + Docker Compose
+- Bun (web)
+- Python 3.12 + uv (API)
+- A running Zitadel instance (local Docker or shared dev)
 
-Set up:
+### Setup
+
 ```bash
-cp .env.example .env
-cp server/.env.example server/.env
+cp api/.env.example api/.env
 cp web/.env.example web/.env
+# Fill in values — see architecture.md for variable reference
 ```
 
-Edit each file before starting services.
-
----
-
-## Docker
-
-### Build images
-
-```bash
-# Backend
-docker build -t scrub server/
-
-# Frontend
-docker build \
-  --build-arg VITE_OIDC_AUTHORITY=https://auth.example.com/realms/scrub \
-  --build-arg VITE_OIDC_CLIENT_ID=app \
-  --build-arg VITE_OIDC_REDIRECT_URI=https://app.example.com/auth/callback \
-  --build-arg VITE_OIDC_POST_LOGOUT_REDIRECT_URI=https://app.example.com \
-  -t scrub-web web/
-```
-
-### Full local stack
+### Start infrastructure
 
 ```bash
 docker compose up -d
 ```
 
-Services and ports:
+This starts: PostgreSQL, Redis, Zitadel, Listmonk, Prometheus, Grafana.
 
-| Service | URL |
-|---------|-----|
-| API | http://localhost:3000 |
-| Listmonk | http://localhost:9000 |
-| Keycloak | http://localhost:8080 |
-| Prometheus | http://localhost:9090 |
-| Grafana | http://localhost:3001 |
+### Run the API locally
 
-Start only dependencies (for local backend dev):
 ```bash
-docker compose up -d listmonk_db listmonk_app redis keycloak
+cd api
+uv run fastapi dev src/main.py --port 3000
+```
+
+### Run the web locally
+
+```bash
+cd web
+bun install
+bun dev
+```
+
+Vite proxies `/backend/*` → `http://localhost:3000` so no CORS config is needed locally.
+
+---
+
+## Migrations
+
+All tables are managed by Alembic. Run from `api/`:
+
+```bash
+# Apply all pending migrations
+make migrate
+
+# Generate a new migration after changing a store
+make migrate-new
+
+# Check current state
+SCRUB_DB_URL=<url> .venv/bin/alembic current
+```
+
+Migrations run against `SCRUB_DB_URL`. In CI, they run inside the container network where `scrub_db` is resolvable. Locally, either use the Docker network or override with `localhost:5432`.
+
+---
+
+## Docker
+
+### Build images manually
+
+```bash
+# API
+docker build api/ \
+  --build-arg GIT_COMMIT=$(git rev-parse HEAD) \
+  --build-arg APP_VERSION=local \
+  -t scrub-api:local
+
+# Web
+docker build web/ \
+  --build-arg VITE_OIDC_AUTHORITY=http://localhost:8080 \
+  --build-arg VITE_OIDC_CLIENT_ID=<client_id> \
+  --build-arg VITE_OIDC_REDIRECT_URI=http://localhost:5173/auth/callback \
+  --build-arg VITE_OIDC_POST_LOGOUT_REDIRECT_URI=http://localhost:5173 \
+  -t scrub-web:local
+```
+
+### Required runtime env vars (API container)
+
+```env
+SCRUB_DB_URL=postgresql+psycopg2://scrub:scrub@scrub_db:5432/scrub
+ZITADEL_DOMAIN=https://id.thescrub.app
+ZITADEL_JWKS_URL=https://id.thescrub.app/oauth/v2/keys
+ZITADEL_CLIENT_ID=<client_id>
+CORS_ALLOWED_ORIGINS=https://thescrub.app
+CELERY_BROKER_URL=redis://redis:6379/0
+CELERY_RESULT_BACKEND=redis://redis:6379/0
+LISTMONK_URL=http://listmonk:9000
+LISTMONK_USER=<user>
+LISTMONK_PASS=<pass>
+LISTMONK_LIST_ID=1
+POSTMARK_WEBHOOK_SECRET=<secret>
 ```
 
 ---
 
 ## CI/CD
 
-Images are built and pushed to GHCR via `.github/workflows/build-dev.yaml`.
+Images are built and pushed to GHCR via `.github/workflows/build.yml`.
+
+Change detection is VERSIONS-file based — only rebuilds components whose version changed:
+
+```
+# VERSIONS file
+api=2026.04.001
+web=2026.04.002
+```
+
+Bump a version line on `main` to trigger a build for that component.
 
 | Branch | Tag suffix | Environment |
 |--------|-----------|-------------|
 | `main` | `-alpha` | Development |
-| `uat` | `-beta` | UAT |
 | `prod` | *(none)* | Production |
 
-Change detection is path-based:
-- Changes under `server/**` → rebuild `ghcr.io/nerd-zero/scrub`
-- Changes under `web/**` → rebuild `ghcr.io/nerd-zero/scrub-web`
+### Image tags
 
-VITE_* variables are passed as Docker build args in the deploy job. They are baked into the static bundle at build time and are not runtime configurable.
+| Image | Dev tag | Prod tag |
+|-------|---------|----------|
+| API | `ghcr.io/nerd-zero/scrub-api:2026.04.001-alpha` | `ghcr.io/nerd-zero/scrub-api:2026.04.001` |
+| Web | `ghcr.io/nerd-zero/scrub:2026.04.002-alpha` | `ghcr.io/nerd-zero/scrub:2026.04.002` |
+
+`VITE_*` build args are computed in the `detect` job and passed to the `build-web` step. Dev uses `id.nerdzero.rocks`, prod uses `id.thescrub.app`.
 
 ---
 
-## Database migrations
+## Zitadel setup
 
-Alembic manages the `listmonk_watermark` table.
+The web app uses a **User Agent** (SPA) OIDC application — Authorization Code + PKCE, no client secret.
+
+To register a new Zitadel application:
 
 ```bash
-# Apply all pending migrations (from repo root)
-alembic -c server/alembic.ini upgrade head
-
-# Generate a new migration
-alembic -c server/alembic.ini revision --autogenerate -m "description"
-
-# Check current state
-alembic -c server/alembic.ini current
+cd api
+bash scripts/create-web-client.sh \
+  -t <personal_access_token> \
+  -z https://id.thescrub.app \
+  -r https://thescrub.app/auth/callback \
+  -l https://thescrub.app
 ```
 
-Set `SCRUB_DB_URL` before running. Default in docker-compose:
-```
-postgresql+psycopg2://listmonk:listmonk@listmonk_db:5432/listmonk
-```
+The script outputs the `VITE_OIDC_CLIENT_ID` to set in your web build args.
 
-> **Note:** The `webhook_registrations` table is created by the API at startup via `metadata.create_all()`. It is not tracked by Alembic.
-
----
-
-## Keycloak
-
-The web UI uses OIDC via Keycloak. A pre-configured client definition is at `docs/client.json`.
-
-Import it after first start:
-1. Open http://localhost:8080 → log in (`admin` / `admin`)
-2. Select your realm → **Clients** → **Import client** → upload `docs/client.json`
-
-The client is configured for `http://localhost:5173` (local dev). For production, create a new client or update the redirect URIs to match your deployed URL.
-
-Key client settings:
-- Client ID: `app`
-- Protocol: `openid-connect`
-- Public client (no secret)
-- PKCE: `S256`
-- Standard flow only (no implicit, no device, no service accounts)
+For local development, use `-z http://localhost:8080`.
 
 ---
 
 ## Observability
 
-Prometheus scrapes `GET /metrics` on the API container. The Grafana dashboard definition is at `grafana/scrub-dashboard.json`.
+Prometheus scrapes `GET /metrics` on the API container (port 3000).
 
-Import the dashboard:
-1. Open http://localhost:3001 → log in
-2. **Dashboards** → **Import** → upload `grafana/scrub-dashboard.json`
-3. Select the Prometheus data source
+### Metrics available
 
-Grafana credentials are set via `GF_SECURITY_ADMIN_USER` and `GF_SECURITY_ADMIN_PASSWORD` in root `.env`.
+| Metric | Description |
+|--------|-------------|
+| `scrub_emails_total` | Validation outcomes by endpoint/status/layer |
+| `scrub_duration_seconds` | Latency histogram by endpoint |
+| `scrub_bulk_size` | Bulk request size distribution |
+| `scrub_duplicates_removed_total` | Dedup counter |
+| `postmark_bounce_events_total` | Postmark bounce events |
+
+Grafana dashboard: import `grafana/scrub-dashboard.json` → select Prometheus data source.
+
+---
+
+## Database backup
+
+No automated backup is configured. The PostgreSQL volume (`scrub_db_data`) should be snapshotted at the infrastructure level before any migration or deploy.
+
+```bash
+# Manual dump
+docker exec scrub_db pg_dump -U scrub scrub > backup.sql
+```

@@ -12,6 +12,7 @@ from scrub.routers.listmonk_router import router as listmonk_router
 from scrub.routers.webhook_router import router as webhook_router
 from scrub.routers.user_router import router as user_router
 from scrub.routers.history_router import router as history_router
+from scrub.routers.api_key_router import router as api_key_router
 from scrub.settings import settings
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -49,11 +50,14 @@ app = FastAPI(
 )
 
 # --- CORS ---
+_allowed_origins = [
+    o.strip() for o in settings.cors_allowed_origins.split(",") if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_allowed_origins,
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key"],
 )
 
 # --- Initialize Metrics Engine ---
@@ -79,3 +83,6 @@ app.include_router(router=user_router, prefix="", tags=["User"])
 app.include_router(
     router=history_router, prefix="/validation/history", tags=["Validation History"]
 )
+
+# API Keys: /api-keys
+app.include_router(router=api_key_router, prefix="/api-keys", tags=["API Keys"])

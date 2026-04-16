@@ -1,7 +1,7 @@
 import { Box, Container, SimpleGrid } from "@chakra-ui/react";
-import { DirtyListCard } from "@app/components/cards/dirty-list-card";
+import { DirtyListCard } from "@app/components/lists/dirty-list-card";
 import { ValidatorInputCard } from "@app/components/cards/validator-input-card";
-import { ValidatedListCard } from "@app/components/cards/validated-list-card";
+import { ValidatedListCard } from "@app/components/lists/validated-list-card";
 
 export function FeatureCardsSection() {
   return (

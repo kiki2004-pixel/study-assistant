@@ -100,17 +100,24 @@ class HistoryStore:
     def get_history(
         self,
         *,
+        user_id: str,
         page: int = 1,
         page_size: int = 100,
         is_valid: Optional[bool] = None,
         email: Optional[str] = None,
         request_id: Optional[str] = None,
     ) -> tuple[list[HistoryRecord], int]:
-        """Return paginated validation history, newest first."""
-        stmt = select(validation_history).order_by(
-            validation_history.c.validated_at.desc()
+        """Return paginated validation history for a specific user, newest first."""
+        stmt = (
+            select(validation_history)
+            .where(validation_history.c.user_id == user_id)
+            .order_by(validation_history.c.validated_at.desc())
         )
-        count_stmt = select(func.count()).select_from(validation_history)
+        count_stmt = (
+            select(func.count())
+            .select_from(validation_history)
+            .where(validation_history.c.user_id == user_id)
+        )
         if is_valid is not None:
             stmt = stmt.where(validation_history.c.is_valid == is_valid)
             count_stmt = count_stmt.where(validation_history.c.is_valid == is_valid)
@@ -126,22 +133,30 @@ class HistoryStore:
             rows = conn.execute(stmt).fetchall()
         return [self._row_to_record(r) for r in rows], int(total)
 
-    def get_by_email(self, email: str) -> list[HistoryRecord]:
-        """Return all history for a specific email address, newest first."""
+    def get_by_email(self, *, email: str, user_id: str) -> list[HistoryRecord]:
+        """Return history for a specific email address belonging to the user."""
         stmt = (
             select(validation_history)
-            .where(validation_history.c.email == email)
+            .where(
+                validation_history.c.email == email,
+                validation_history.c.user_id == user_id,
+            )
             .order_by(validation_history.c.validated_at.desc())
         )
         with self._engine.begin() as conn:
             rows = conn.execute(stmt).fetchall()
         return [self._row_to_record(r) for r in rows]
 
-    def get_by_request_id(self, request_id: str) -> list[HistoryRecord]:
-        """Return all results for a bulk job identified by request_id."""
+    def get_by_request_id(
+        self, *, request_id: str, user_id: str
+    ) -> list[HistoryRecord]:
+        """Return all results for a bulk job belonging to the user."""
         stmt = (
             select(validation_history)
-            .where(validation_history.c.request_id == request_id)
+            .where(
+                validation_history.c.request_id == request_id,
+                validation_history.c.user_id == user_id,
+            )
             .order_by(validation_history.c.validated_at.asc())
         )
         with self._engine.begin() as conn:
@@ -175,11 +190,14 @@ class HistoryStore:
         with self._engine.begin() as conn:
             conn.execute(validation_history.insert(), rows)
 
-    def delete_by_email(self, email: str) -> int:
-        """Delete all history for an email address. Returns rows deleted."""
+    def delete_by_email(self, *, email: str, user_id: str) -> int:
+        """Delete history for an email address owned by the user. Returns rows deleted."""
         with self._engine.begin() as conn:
             result = conn.execute(
-                delete(validation_history).where(validation_history.c.email == email)
+                delete(validation_history).where(
+                    validation_history.c.email == email,
+                    validation_history.c.user_id == user_id,
+                )
             )
         return result.rowcount
 

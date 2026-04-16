@@ -28,6 +28,48 @@ export async function apiPost<T>(
   return response.json() as Promise<T>;
 }
 
+export async function apiDelete(
+  path: string,
+  options: RequestInit = {},
+): Promise<void> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "DELETE",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+      ...(options.headers ?? {}),
+    },
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`API error ${response.status}: ${detail}`);
+  }
+}
+
+export async function apiPut<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "PUT",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+      ...(options.headers ?? {}),
+    },
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`API error ${response.status}: ${detail}`);
+  }
+
+  return response.json() as Promise<T>;
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},

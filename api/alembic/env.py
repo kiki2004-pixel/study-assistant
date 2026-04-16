@@ -18,11 +18,12 @@ from scrub.storage.watermark_store import metadata as watermark_metadata  # noqa
 from scrub.storage.webhook_store import metadata as webhook_metadata  # noqa: E402
 from scrub.storage.user_store import metadata as user_metadata  # noqa: E402
 from scrub.storage.history_store import metadata as history_metadata  # noqa: E402
+from scrub.storage.api_key_store import metadata as api_key_metadata  # noqa: E402
 from sqlalchemy import MetaData  # noqa: E402
 
 # Combine all store metadata so Alembic autogenerate covers every table.
 metadata = MetaData()
-for _m in (watermark_metadata, webhook_metadata, user_metadata, history_metadata):
+for _m in (watermark_metadata, webhook_metadata, user_metadata, history_metadata, api_key_metadata):
     for table in _m.sorted_tables:
         table.to_metadata(metadata)
 
