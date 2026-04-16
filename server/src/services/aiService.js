@@ -1,6 +1,6 @@
-const Anthropic = require('@anthropic-ai/sdk');
+const Groq = require('groq-sdk');
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const STYLE_PROMPTS = {
   simple:
@@ -16,17 +16,15 @@ const STYLE_PROMPTS = {
 async function simplifyNote(extractedText, style) {
   const stylePrompt = STYLE_PROMPTS[style] || STYLE_PROMPTS.simple;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+  const response = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
     max_tokens: 4096,
-    system: [
-      {
-        type: 'text',
-        text: 'You are an expert study assistant who helps students understand complex academic material. You produce clear, accurate, well-structured study notes. Always respond in valid Markdown.',
-        cache_control: { type: 'ephemeral' },
-      },
-    ],
     messages: [
+      {
+        role: 'system',
+        content:
+          'You are an expert study assistant who helps students understand complex academic material. You produce clear, accurate, well-structured study notes. Always respond in valid Markdown.',
+      },
       {
         role: 'user',
         content: `${stylePrompt}\n\n---\n\n${extractedText}`,
@@ -35,9 +33,9 @@ async function simplifyNote(extractedText, style) {
   });
 
   return {
-    text: response.content[0].text,
+    text: response.choices[0].message.content,
     model: response.model,
-    tokens: (response.usage.input_tokens || 0) + (response.usage.output_tokens || 0),
+    tokens: (response.usage?.prompt_tokens || 0) + (response.usage?.completion_tokens || 0),
   };
 }
 
@@ -86,18 +84,24 @@ Return ONLY valid JSON with NO markdown fences, NO explanation. Use this exact s
   ]
 }`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+  const response = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
     max_tokens: 4096,
-    system: 'You are an academic scheduling expert. You generate personalized study timetables. You MUST respond with valid JSON only — no markdown code fences, no explanation text.',
-    messages: [{ role: 'user', content: userPrompt }],
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are an academic scheduling expert. You generate personalized study timetables. You MUST respond with valid JSON only — no markdown code fences, no explanation text.',
+      },
+      { role: 'user', content: userPrompt },
+    ],
   });
 
-  const rawText = response.content[0].text.trim();
-  // Strip any accidental code fences
+  const rawText = response.choices[0].message.content.trim();
   const cleaned = rawText.replace(/^```json?\s*/i, '').replace(/```\s*$/i, '').trim();
   const parsed = JSON.parse(cleaned);
+
   return { schedule: parsed, model: response.model };
 }
 
-module.exports = { anthropic, simplifyNote, generateTimetable };
+module.exports = { groq, simplifyNote, generateTimetable };

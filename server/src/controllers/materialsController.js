@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { db } = require('../config/database');
 const { extractText } = require('../services/extractionService');
-const { anthropic } = require('../services/aiService');
+
 
 function getFileType(mimeType) {
   if (mimeType === 'application/pdf') return 'pdf';
@@ -19,7 +19,7 @@ async function uploadMaterial(req, res, next) {
     const now = new Date().toISOString();
     const id = uuidv4();
 
-    const extracted = await extractText(req.file.path, req.file.mimetype, anthropic);
+    const extracted = await extractText(req.file.path, req.file.mimetype);
 
     const stmt = db.prepare(`
       INSERT INTO materials (id, original_name, stored_name, file_path, file_type, material_type, subject, extracted_text, file_size, mime_type, created_at, updated_at)

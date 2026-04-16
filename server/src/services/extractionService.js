@@ -1,7 +1,6 @@
 const fs = require('fs');
-const path = require('path');
 
-async function extractText(filePath, mimeType, anthropic) {
+async function extractText(filePath, mimeType) {
   if (mimeType === 'application/pdf') {
     return extractPdf(filePath);
   }
@@ -9,7 +8,7 @@ async function extractText(filePath, mimeType, anthropic) {
     return fs.readFileSync(filePath, 'utf-8');
   }
   if (['image/png', 'image/jpeg', 'image/jpg'].includes(mimeType)) {
-    return extractImageText(filePath, mimeType, anthropic);
+    return extractImageText(filePath, mimeType);
   }
   return '';
 }
@@ -26,20 +25,24 @@ async function extractPdf(filePath) {
   }
 }
 
-async function extractImageText(filePath, mimeType, anthropic) {
+async function extractImageText(filePath, mimeType) {
   try {
+    // Use Groq vision model for image text extraction
+    const Groq = require('groq-sdk');
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     const buffer = fs.readFileSync(filePath);
     const base64 = buffer.toString('base64');
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.2-11b-vision-preview',
       max_tokens: 2048,
       messages: [
         {
           role: 'user',
           content: [
             {
-              type: 'image',
-              source: { type: 'base64', media_type: mimeType, data: base64 },
+              type: 'image_url',
+              image_url: { url: `data:${mimeType};base64,${base64}` },
             },
             {
               type: 'text',
@@ -49,7 +52,7 @@ async function extractImageText(filePath, mimeType, anthropic) {
         },
       ],
     });
-    return response.content[0].text || '';
+    return response.choices[0].message.content || '';
   } catch (err) {
     console.error('Image extraction error:', err.message);
     return '';
