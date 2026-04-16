@@ -12,13 +12,15 @@
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "rootDirs": [".", "./.react-router/types"],
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@app/*": ["./app/*"],
       "@lib/*": ["./lib/*"],
-      "@types/*": ["./types/*"],
+      "~types/*": ["./types/*"],
       "api/*": ["./api/*"]
     },
+    "types": ["vite/client"],
     "esModuleInterop": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,

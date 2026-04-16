@@ -14,6 +14,7 @@ os.environ.setdefault("API_KEY", "test-api-key")
 
 from scrub.storage.history_store import HistoryStore  # noqa: E402
 from scrub.routers.history_router import get_history_store  # noqa: E402
+from scrub.auth import verify_api_key  # noqa: E402
 from main import app  # noqa: E402
 
 
@@ -36,12 +37,17 @@ def store(db_path):
     return s
 
 
+_FAKE_CALLER = {"sub": "test-user", "email": "test@example.com", "name": "Test", "auth_method": "api_key"}
+
+
 @pytest.fixture()
 def client(store):
     """TestClient with history store dependency overridden to use temp SQLite."""
     app.dependency_overrides[get_history_store] = lambda: store
-    yield TestClient(app)
+    app.dependency_overrides[verify_api_key] = lambda: _FAKE_CALLER
+    yield TestClient(app, headers={"X-API-Key": "test-api-key"})
     app.dependency_overrides.pop(get_history_store, None)
+    app.dependency_overrides.pop(verify_api_key, None)
 
 
 # ---------------------------------------------------------------------------
@@ -50,8 +56,8 @@ def client(store):
 
 
 def test_save_and_retrieve_by_email(store):
-    store.save(email="user@example.com", is_valid=True, quality_score=90)
-    records = store.get_by_email("user@example.com")
+    store.save(email="user@example.com", is_valid=True, quality_score=90, user_id="test-user")
+    records = store.get_by_email(email="user@example.com", user_id="test-user")
     assert len(records) == 1
     assert records[0].email == "user@example.com"
     assert records[0].is_valid is True
@@ -60,60 +66,60 @@ def test_save_and_retrieve_by_email(store):
 
 def test_get_history_pagination(store):
     for i in range(5):
-        store.save(email=f"u{i}@example.com", is_valid=True)
-    records, total = store.get_history(page=1, page_size=3)
+        store.save(email=f"u{i}@example.com", is_valid=True, user_id="test-user")
+    records, total = store.get_history(user_id="test-user", page=1, page_size=3)
     assert total == 5
     assert len(records) == 3
-    records_p2, _ = store.get_history(page=2, page_size=3)
+    records_p2, _ = store.get_history(user_id="test-user", page=2, page_size=3)
     assert len(records_p2) == 2
 
 
 def test_get_history_filter_by_is_valid(store):
-    store.save(email="good@example.com", is_valid=True)
-    store.save(email="bad@example.com", is_valid=False)
-    valid_records, total = store.get_history(is_valid=True)
+    store.save(email="good@example.com", is_valid=True, user_id="test-user")
+    store.save(email="bad@example.com", is_valid=False, user_id="test-user")
+    valid_records, total = store.get_history(user_id="test-user", is_valid=True)
     assert total == 1
     assert valid_records[0].email == "good@example.com"
-    invalid_records, total = store.get_history(is_valid=False)
+    invalid_records, total = store.get_history(user_id="test-user", is_valid=False)
     assert total == 1
     assert invalid_records[0].email == "bad@example.com"
 
 
 def test_get_by_request_id(store):
     req_id = str(uuid.uuid4())
-    store.save(email="a@example.com", is_valid=True, request_id=req_id)
-    store.save(email="b@example.com", is_valid=False, request_id=req_id)
-    store.save(email="other@example.com", is_valid=True)  # different request
-    records = store.get_by_request_id(req_id)
+    store.save(email="a@example.com", is_valid=True, request_id=req_id, user_id="test-user")
+    store.save(email="b@example.com", is_valid=False, request_id=req_id, user_id="test-user")
+    store.save(email="other@example.com", is_valid=True, user_id="test-user")  # different request
+    records = store.get_by_request_id(request_id=req_id, user_id="test-user")
     assert len(records) == 2
     emails = {r.email for r in records}
     assert emails == {"a@example.com", "b@example.com"}
 
 
 def test_delete_by_email(store):
-    store.save(email="remove@example.com", is_valid=True)
-    store.save(email="remove@example.com", is_valid=False)
-    store.save(email="keep@example.com", is_valid=True)
-    deleted = store.delete_by_email("remove@example.com")
+    store.save(email="remove@example.com", is_valid=True, user_id="test-user")
+    store.save(email="remove@example.com", is_valid=False, user_id="test-user")
+    store.save(email="keep@example.com", is_valid=True, user_id="test-user")
+    deleted = store.delete_by_email(email="remove@example.com", user_id="test-user")
     assert deleted == 2
-    assert store.get_by_email("remove@example.com") == []
-    assert len(store.get_by_email("keep@example.com")) == 1
+    assert store.get_by_email(email="remove@example.com", user_id="test-user") == []
+    assert len(store.get_by_email(email="keep@example.com", user_id="test-user")) == 1
 
 
 def test_save_many(store):
     req_id = str(uuid.uuid4())
     entries = [
-        {"email": f"m{i}@example.com", "is_valid": i % 2 == 0, "request_id": req_id}
+        {"email": f"m{i}@example.com", "is_valid": i % 2 == 0, "request_id": req_id, "user_id": "test-user"}
         for i in range(4)
     ]
     store.save_many(entries)
-    records = store.get_by_request_id(req_id)
+    records = store.get_by_request_id(request_id=req_id, user_id="test-user")
     assert len(records) == 4
 
 
 def test_save_many_empty_is_noop(store):
     store.save_many([])  # should not raise
-    _, total = store.get_history()
+    _, total = store.get_history(user_id="test-user")
     assert total == 0
 
 
@@ -125,8 +131,9 @@ def test_checks_and_attributes_roundtrip(store):
         is_valid=True,
         checks=checks,
         attributes=attributes,
+        user_id="test-user",
     )
-    records = store.get_by_email("rich@example.com")
+    records = store.get_by_email(email="rich@example.com", user_id="test-user")
     assert records[0].checks == checks
     assert records[0].attributes == attributes
 
@@ -145,8 +152,8 @@ def test_list_history_empty(client):
 
 
 def test_list_history_returns_entries(client, store):
-    store.save(email="a@example.com", is_valid=True)
-    store.save(email="b@example.com", is_valid=False)
+    store.save(email="a@example.com", is_valid=True, user_id="test-user")
+    store.save(email="b@example.com", is_valid=False, user_id="test-user")
     r = client.get("/validation/history")
     assert r.status_code == 200
     data = r.json()
@@ -155,8 +162,8 @@ def test_list_history_returns_entries(client, store):
 
 
 def test_list_history_filter_valid(client, store):
-    store.save(email="good@example.com", is_valid=True)
-    store.save(email="bad@example.com", is_valid=False)
+    store.save(email="good@example.com", is_valid=True, user_id="test-user")
+    store.save(email="bad@example.com", is_valid=False, user_id="test-user")
     r = client.get("/validation/history?is_valid=true")
     assert r.status_code == 200
     assert r.json()["total"] == 1
@@ -164,7 +171,7 @@ def test_list_history_filter_valid(client, store):
 
 
 def test_get_email_history(client, store):
-    store.save(email="target@example.com", is_valid=True)
+    store.save(email="target@example.com", is_valid=True, user_id="test-user")
     r = client.get("/validation/history/target@example.com")
     assert r.status_code == 200
     assert len(r.json()) == 1
@@ -178,8 +185,8 @@ def test_get_email_history_not_found(client):
 
 def test_get_bulk_history(client, store):
     req_id = str(uuid.uuid4())
-    store.save(email="x@example.com", is_valid=True, request_id=req_id)
-    store.save(email="y@example.com", is_valid=False, request_id=req_id)
+    store.save(email="x@example.com", is_valid=True, request_id=req_id, user_id="test-user")
+    store.save(email="y@example.com", is_valid=False, request_id=req_id, user_id="test-user")
     r = client.get(f"/validation/history/bulk/{req_id}")
     assert r.status_code == 200
     assert len(r.json()) == 2
@@ -208,11 +215,11 @@ def test_search_by_request_id(client, store):
 
 
 def test_delete_email_history(client, store):
-    store.save(email="gdpr@example.com", is_valid=True)
+    store.save(email="gdpr@example.com", is_valid=True, user_id="test-user")
     r = client.delete("/validation/history/gdpr@example.com")
     assert r.status_code == 200
     assert r.json()["deleted"] == 1
-    assert store.get_by_email("gdpr@example.com") == []
+    assert store.get_by_email(email="gdpr@example.com", user_id="test-user") == []
 
 
 def test_delete_email_history_not_present_returns_zero(client):

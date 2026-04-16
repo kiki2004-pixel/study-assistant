@@ -1,6 +1,6 @@
 import { Badge, Box, Button, Flex, Text } from "@chakra-ui/react";
 import { FiUsers, FiZap } from "react-icons/fi";
-import type { ListmonkList } from "@types/integrations";
+import type { ListmonkList } from "~types/integrations";
 
 interface ListmonkListCardProps {
   list: ListmonkList;

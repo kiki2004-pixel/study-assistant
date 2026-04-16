@@ -6,7 +6,7 @@ import {
   deleteListmonkIntegration,
   testListmonkIntegration,
 } from "api/integrations";
-import type { Integration } from "@types/integrations";
+import type { Integration } from "~types/integrations";
 
 interface ConnectListmonkModalProps {
   open: boolean;

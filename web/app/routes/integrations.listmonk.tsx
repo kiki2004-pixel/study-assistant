@@ -4,7 +4,7 @@ import { FiArrowLeft, FiChevronRight, FiPlus } from "react-icons/fi";
 import { Link } from "react-router";
 import { listListmonkIntegrations } from "api/integrations";
 import { ConnectListmonkModal } from "@app/components/modals/connect-listmonk-modal";
-import type { Integration } from "@types/integrations";
+import type { Integration } from "~types/integrations";
 
 export default function IntegrationsListmonk() {
   const [integrations, setIntegrations] = useState<Integration[]>([]);

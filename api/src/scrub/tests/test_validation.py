@@ -14,9 +14,17 @@ from scrub.storage.history_store import HistoryStore  # noqa: E402
 from scrub.storage.webhook_store import WebhookStore  # noqa: E402
 from scrub.routers.history_router import get_history_store  # noqa: E402
 from scrub.routers.validation_router import get_webhook_store  # noqa: E402
+from scrub.auth import verify_any_auth  # noqa: E402
 
 # Target path for mocking the DNS service within the validation logic
 MOCK_DNS_PATH = "scrub.services.validation_service.check_dns_records"
+
+
+_FAKE_USER = {"sub": "test-user", "email": "test@example.com", "name": "Test"}
+
+
+async def _fake_auth():
+    return _FAKE_USER
 
 
 @pytest.fixture(scope="module")
@@ -33,9 +41,11 @@ def client(tmp_path_factory):
 
     app.dependency_overrides[get_history_store] = lambda: history_store
     app.dependency_overrides[get_webhook_store] = lambda: webhook_store
+    app.dependency_overrides[verify_any_auth] = _fake_auth
     yield TestClient(app)
     app.dependency_overrides.pop(get_history_store, None)
     app.dependency_overrides.pop(get_webhook_store, None)
+    app.dependency_overrides.pop(verify_any_auth, None)
 
 
 # 3. DNS-Based Single Validation Tests

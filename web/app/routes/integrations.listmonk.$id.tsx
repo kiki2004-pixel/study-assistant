@@ -8,7 +8,7 @@ import {
   getListmonkLists,
 } from "api/integrations";
 import { ListmonkLists } from "@app/components/lists/listmonk-lists";
-import type { Integration, ListmonkList } from "@types/integrations";
+import type { Integration, ListmonkList } from "~types/integrations";
 
 export default function IntegrationsListmonkDetail() {
   const { id } = useParams<{ id: string }>();

@@ -1,7 +1,7 @@
 .PHONY: run stop restart logs \
         api web worker deps \
         api-dev web-dev \
-        test test-e2e lint typecheck \
+        test test-api test-web lint typecheck \
         migrate migrate-new \
         zitadel setup-web-client setup-api-client \
         clean
@@ -56,10 +56,14 @@ worker-dev:
 # ── Testing ───────────────────────────────────────────────────────────────────
 
 test:
-	cd api && uv run pytest -m "not e2e"
+	cd api && uv run pytest
+	cd web && bun run typecheck
 
-test-e2e:
-	cd api && uv run pytest -m e2e
+test-api:
+	cd api && uv run pytest
+
+test-web:
+	cd web && bun run typecheck
 
 # ── Linting & type checking ───────────────────────────────────────────────────
 

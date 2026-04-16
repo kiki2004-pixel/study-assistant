@@ -1,7 +1,7 @@
 import { Box, Flex, Grid, Text } from "@chakra-ui/react";
 import { FiList } from "react-icons/fi";
 import { ListmonkListCard } from "@app/components/cards/listmonk-list-card";
-import type { ListmonkList } from "@types/integrations";
+import type { ListmonkList } from "~types/integrations";
 
 interface ListmonkListsProps {
   lists: ListmonkList[];

@@ -3,7 +3,7 @@ import type {
   ConnectionTestResult,
   Integration,
   ListmonkList,
-} from "@types/integrations";
+} from "~types/integrations";
 
 export function listListmonkIntegrations(): Promise<Integration[]> {
   return apiFetch<Integration[]>("/listmonk/integrations");

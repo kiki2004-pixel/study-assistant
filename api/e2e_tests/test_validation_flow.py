@@ -20,7 +20,7 @@ os.environ["SCRUB_DB_URL"] = f"sqlite:///{_db_path}"
 atexit.register(lambda: os.path.exists(_db_path) and os.remove(_db_path))
 
 from main import app  # noqa: E402
-from scrub.auth import verify_token  # noqa: E402
+from scrub.auth import verify_token, verify_any_auth  # noqa: E402
 from scrub.settings import settings  # noqa: E402
 from scrub.storage.webhook_store import WebhookStore  # noqa: E402
 from scrub.storage.history_store import HistoryStore  # noqa: E402
@@ -46,6 +46,7 @@ async def _mock_verify_token():
 def mock_auth():
     """Override auth and user store for tests that don't test auth itself."""
     app.dependency_overrides[verify_token] = _mock_verify_token
+    app.dependency_overrides[verify_any_auth] = _mock_verify_token
     app.dependency_overrides[get_user_store] = lambda: MagicMock()
     yield
     app.dependency_overrides.clear()
