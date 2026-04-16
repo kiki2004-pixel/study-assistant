@@ -30,9 +30,8 @@ class Settings(BaseSettings):
     sentry_dsn: str = ""
     sentry_environment: str = "local"
 
-    # Worker / Celery Settings
-    celery_broker_url: str = "redis://localhost:6379/0"
-    celery_result_backend: str = "redis://localhost:6379/0"
+    # Worker / Redis Settings
+    redis_url: str = "redis://localhost:6379/0"
     scrub_db_url: str
     validation_batch_size: int = 250
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import httpx
 import listmonk
 from listmonk.models import MailingList, Subscriber
 
@@ -28,11 +29,7 @@ class ListmonkClient:
         self._auth()
         return listmonk.is_healthy()
 
-    # ------------------------------------------------------------------
-    # Lists
-    # ------------------------------------------------------------------
-
-    def lists(self) -> list[MailingList]:
+    def get_lists(self) -> list[dict]:
         self._auth()
         return listmonk.lists()
 
@@ -78,3 +75,37 @@ class ListmonkClient:
         sub = listmonk.subscriber_by_email(email)
         if sub:
             listmonk.block_subscriber(sub)
+
+    # ------------------------------------------------------------------
+    # Paginated subscriber fetching (raw REST, supports pagination)
+    # ------------------------------------------------------------------
+
+    def subscribers_total(self, list_id: int) -> int:
+        """Return total subscriber count for a list."""
+        with httpx.Client(
+            base_url=self._base_url,
+            auth=(self._username, self._api_token),
+            timeout=10.0,
+        ) as client:
+            resp = client.get(
+                "/api/subscribers",
+                params={"list_id": list_id, "page": 1, "per_page": 1},
+            )
+            resp.raise_for_status()
+            return resp.json().get("data", {}).get("total", 0)
+
+    def subscribers_page(
+        self, list_id: int, page: int, per_page: int = 100
+    ) -> list[dict]:
+        """Fetch one page of subscribers for a list."""
+        with httpx.Client(
+            base_url=self._base_url,
+            auth=(self._username, self._api_token),
+            timeout=30.0,
+        ) as client:
+            resp = client.get(
+                "/api/subscribers",
+                params={"list_id": list_id, "page": page, "per_page": per_page},
+            )
+            resp.raise_for_status()
+            return resp.json().get("data", {}).get("results", [])

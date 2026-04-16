@@ -13,6 +13,7 @@ from scrub.routers.webhook_router import router as webhook_router
 from scrub.routers.user_router import router as user_router
 from scrub.routers.history_router import router as history_router
 from scrub.routers.api_key_router import router as api_key_router
+from scrub.routers.jobs_router import router as jobs_router
 from scrub.settings import settings
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -86,3 +87,6 @@ app.include_router(
 
 # API Keys: /api-keys
 app.include_router(router=api_key_router, prefix="/api-keys", tags=["API Keys"])
+
+# Jobs: /jobs/progress/{request_id}, /jobs/active, /jobs/recent
+app.include_router(router=jobs_router, prefix="/jobs", tags=["Validation Jobs"])

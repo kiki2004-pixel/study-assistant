@@ -22,13 +22,15 @@ atexit.register(lambda: os.path.exists(_db_path) and os.remove(_db_path))
 from main import app  # noqa: E402
 from scrub.auth import verify_token, verify_any_auth  # noqa: E402
 from scrub.settings import settings  # noqa: E402
-from scrub.storage.webhook_store import WebhookStore  # noqa: E402
-from scrub.storage.history_store import HistoryStore  # noqa: E402
-from scrub.routers.validation_router import get_user_store  # noqa: E402
+from scrub.models.webhook_store import WebhookStore  # noqa: E402
+from scrub.models.history_store import HistoryStore  # noqa: E402
+from scrub.models.validation_job_store import ValidationJobStore  # noqa: E402
+from scrub.routers.validation_router import _get_user_repository as get_user_store  # noqa: E402
 
 # Initialise schemas before tests run — TestClient does not trigger lifespan
 WebhookStore(settings.scrub_db_url).init_schema()
 HistoryStore(settings.scrub_db_url).init_schema()
+ValidationJobStore(settings.scrub_db_url).init_schema()
 
 # Mock Paths for Service and Client
 MOCK_DNS_PATH = "scrub.services.validation_service.check_dns_records"

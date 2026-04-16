@@ -8,7 +8,7 @@ from typing import Any, Dict
 
 import httpx
 
-from scrub.storage.webhook_store import WebhookStore
+from scrub.repositories.webhook_repository import WebhookRepository
 
 logger = logging.getLogger(__name__)
 
@@ -41,13 +41,15 @@ async def _deliver(
         return False
 
 
-async def dispatch_webhook(store: WebhookStore, event_payload: Dict[str, Any]) -> None:
+async def dispatch_webhook(
+    store: WebhookRepository, event_payload: Dict[str, Any]
+) -> None:
     """
     Dispatch a webhook event to all active registered URLs.
     Retries up to MAX_RETRIES times with backoff on failure.
     Deactivates webhook after MAX_FAILURES consecutive failures.
     """
-    registrations = await asyncio.to_thread(store.list_active)
+    registrations = await asyncio.to_thread(store.list_active_registrations)
     if not registrations:
         return
 

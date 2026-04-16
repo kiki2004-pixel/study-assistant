@@ -4,29 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 
 from scrub.auth import verify_api_key
-from scrub.models.history import DeleteHistoryResponse, HistoryEntry, HistoryPage
-from scrub.storage.history_store import HistoryRecord, HistoryStore
-from scrub.settings import settings
+from scrub.dto.history import DeleteHistoryResponse, HistoryEntry, HistoryPage
+from scrub.repositories.history_repository import (
+    HistoryRepository,
+    get_history_repository,
+)
 
 router = APIRouter()
-
-
-def get_history_store() -> HistoryStore:
-    return HistoryStore(settings.scrub_db_url)
-
-
-def _to_entry(r: HistoryRecord) -> HistoryEntry:
-    return HistoryEntry(
-        id=r.id,
-        email=r.email,
-        validated_at=r.validated_at,
-        is_valid=r.is_valid,
-        quality_score=r.quality_score,
-        checks=r.checks,
-        attributes=r.attributes,
-        request_id=r.request_id,
-        user_id=r.user_id,
-    )
 
 
 @router.get("", response_model=HistoryPage)
@@ -34,61 +18,50 @@ async def list_history(
     page: int = Query(1, ge=1),
     page_size: int = Query(100, ge=1, le=1000),
     is_valid: Optional[bool] = Query(None),
-    email: Optional[str] = Query(None),
-    request_id: Optional[str] = Query(None),
-    store: HistoryStore = Depends(get_history_store),
+    repo: HistoryRepository = Depends(get_history_repository),
     caller: dict = Depends(verify_api_key),
 
 ):
     """Return paginated validation history for the authenticated user, newest first."""
-    records, total = store.get_history(
-        user_id=caller["sub"], page=page, page_size=page_size, is_valid=is_valid
-    )
-    return HistoryPage(
-        total=total,
-        page=page,
-        page_size=page_size,
-        results=[_to_entry(r) for r in records],
-    )
+    return repo.get_page(caller["sub"], page, page_size, is_valid)
 
 
 @router.get("/bulk/{request_id}", response_model=list[HistoryEntry])
 async def get_bulk_history(
     request_id: str,
-    store: HistoryStore = Depends(get_history_store),
+    repo: HistoryRepository = Depends(get_history_repository),
     caller: dict = Depends(verify_api_key),
 
 ):
     """Return all validation results for a bulk job owned by the authenticated user."""
-    records = store.get_by_request_id(request_id=request_id, user_id=caller["sub"])
+    records = repo.get_by_request_id(request_id, caller["sub"])
     if not records:
         raise HTTPException(
             status_code=404, detail="No history found for this request_id"
         )
-    return [_to_entry(r) for r in records]
+    return records
 
 
 @router.get("/{email}", response_model=list[HistoryEntry])
 async def get_email_history(
     email: str,
-    store: HistoryStore = Depends(get_history_store),
+    repo: HistoryRepository = Depends(get_history_repository),
     caller: dict = Depends(verify_api_key),
 
 ):
     """Return validation history for a specific email address owned by the authenticated user."""
-    records = store.get_by_email(email=email, user_id=caller["sub"])
+    records = repo.get_by_email(email, caller["sub"])
     if not records:
         raise HTTPException(status_code=404, detail="No history found for this email")
-    return [_to_entry(r) for r in records]
+    return records
 
 
 @router.delete("/{email}", response_model=DeleteHistoryResponse)
 async def delete_email_history(
     email: str,
-    store: HistoryStore = Depends(get_history_store),
+    repo: HistoryRepository = Depends(get_history_repository),
     caller: dict = Depends(verify_api_key),
 
 ):
     """Delete history for an email address (GDPR right-to-erasure). Scoped to authenticated user."""
-    deleted = store.delete_by_email(email=email, user_id=caller["sub"])
-    return DeleteHistoryResponse(email=email, deleted=deleted)
+    return repo.delete_by_email(email, caller["sub"])

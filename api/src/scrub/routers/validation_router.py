@@ -1,324 +1,104 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from functools import lru_cache
 from pydantic import EmailStr
-from time import perf_counter
-from prometheus_client import Counter, Histogram
-import logging
 import uuid
 
 from scrub.auth import verify_any_auth
-from scrub.services.validation_service import validate_email_internal
+from scrub.services import validation_orchestrator
 from scrub.services.webhook_service import dispatch_webhook
-from scrub.storage.user_store import UserStore
-from scrub.storage.webhook_store import WebhookStore
-from scrub.storage.history_store import HistoryStore
-from scrub.routers.history_router import get_history_store
-from scrub.models.validation import ValidationResponse
-from scrub.models.bulk_validation import (
-    BulkValidationRequest,
-    BulkValidationResponse,
-    BulkEmailResult,
-    BulkValidationSummary,
+from scrub.repositories.history_repository import (
+    HistoryRepository,
+    get_history_repository,
 )
-from scrub.settings import settings
-import scrub.jobs.celery_app as celery_app
-
-logger = logging.getLogger(__name__)
-
-
-def get_webhook_store() -> WebhookStore:
-    return WebhookStore(settings.scrub_db_url)
-
-
-@lru_cache
-def get_user_store() -> UserStore:
-    return UserStore(settings.scrub_db_url)
-
+from scrub.repositories.user_repository import UserRepository, get_user_repository
+from scrub.repositories.webhook_repository import (
+    WebhookRepository,
+    get_webhook_repository,
+)
+from scrub.dto.validation import ValidationResponse
+from scrub.dto.bulk_validation import BulkValidationRequest, BulkValidationResponse
+from scrub.models.validation_job_store import JobSource, JobType, ValidationJobStore
+from scrub.settings import Settings
+from sqlalchemy.pool import NullPool
 
 router = APIRouter()
 
-# Prometheus Metrics
 
-VALIDATION_COUNTER = Counter(
-    "scrub_emails_total",
-    "Total number of emails validated",
-    ["endpoint", "status", "layer"],
-    # endpoint: "single" | "bulk"
-    # status:   "deliverable" | "undeliverable" | "error"
-    # layer:    "syntax" | "dns" | "internal"
-)
-
-VALIDATION_DURATION = Histogram(
-    "scrub_duration_seconds",
-    "Time spent validating emails",
-    ["endpoint"],
-    buckets=[0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0],
-)
-
-BULK_SIZE_HISTOGRAM = Histogram(
-    "scrub_bulk_size",
-    "Number of emails submitted per bulk request",
-    buckets=[1, 10, 50, 100, 500, 1000, 5000, 10000, 30000],
-)
-
-DUPLICATES_REMOVED_COUNTER = Counter(
-    "scrub_duplicates_removed_total",
-    "Total number of duplicate emails removed during bulk validation",
-)
-
-
-def _record_usage(user_store: UserStore, user_claims: dict, count: int) -> None:
-    """Write validation count to the DB. Runs as a background task so failures
-    never surface to the caller."""
-    try:
-        user = user_store.get_or_create(
-            user_claims["sub"], user_claims.get("email"), user_claims.get("name")
-        )
-        user_store.record_validation(user.id, count=count)
-    except Exception:
-        logger.exception("Failed to record usage for sub=%r", user_claims.get("sub"))
-
-
-# Routes
-
-
-@router.get("/trigger")
-async def trigger_validation():
-    celery_app.start_scheduler.delay()
-    return {"message": "Scheduler started"}
+@lru_cache
+def _get_user_repository() -> UserRepository:
+    return get_user_repository()
 
 
 @router.post("/validate-single", response_model=ValidationResponse)
 async def validate_single(
     background_tasks: BackgroundTasks,
     email: EmailStr = Query(..., description="The email address to verify"),
-    webhook_store: WebhookStore = Depends(get_webhook_store),
-    history_store: HistoryStore = Depends(get_history_store),
+    webhook_repo: WebhookRepository = Depends(get_webhook_repository),
+    history_repo: HistoryRepository = Depends(get_history_repository),
     user_claims: dict = Depends(verify_any_auth),
-    user_store: UserStore = Depends(get_user_store),
+    user_repo: UserRepository = Depends(_get_user_repository),
 ):
-    """
-    Validate a single email address using syntax and async DNS layers.
-    """
-    with VALIDATION_DURATION.labels(endpoint="single").time():
-        result = await validate_email_internal(email)
-
-    layer = result.get("layer", "dns")
-    status = result.get("status", "undeliverable")
-
-    VALIDATION_COUNTER.labels(endpoint="single", status=status, layer=layer).inc()
-
-    response = {
-        "email": email,
-        "status": status,
-        "reason": result["reason"],
-        "details": result["details"],
-        "checks": result["checks"],
-        "attributes": result["attributes"],
-        "quality_score": result["quality_score"],
-    }
-
-    # Persist to history (non-blocking)
-    background_tasks.add_task(
-        history_store.save,
-        email=email,
-        is_valid=result["ok"],
-        quality_score=result.get("quality_score"),
-        checks=result.get("checks"),
-        attributes=result.get("attributes"),
-        user_id=user_claims.get("sub"),
+    """Validate a single email address using syntax and async DNS layers."""
+    result = await validation_orchestrator.validate_single(
+        email, user_claims.get("sub")
     )
-
-    # Fire webhook after response is sent — FastAPI BackgroundTasks manages
-    # execution safely, unlike asyncio.create_task() which is unbounded
-    background_tasks.add_task(
-        dispatch_webhook,
-        webhook_store,
-        {
-            "endpoint": "single",
-            "job_id": None,
-            "summary": {
-                "total": 1,
-                "valid": 1 if result["ok"] else 0,
-                "invalid": 0 if result["ok"] else 1,
-            },
-            "result": response,
-        },
-    )
-
-    background_tasks.add_task(_record_usage, user_store, user_claims, 1)
-
-    return response
+    background_tasks.add_task(history_repo.save, **result.history_entry)
+    background_tasks.add_task(dispatch_webhook, webhook_repo, result.webhook_payload)
+    background_tasks.add_task(user_repo.record_usage, user_claims, 1)
+    return result.response
 
 
 @router.post("/validate-bulk", response_model=BulkValidationResponse)
 async def validate_bulk(
     background_tasks: BackgroundTasks,
     payload: BulkValidationRequest,
-    webhook_store: WebhookStore = Depends(get_webhook_store),
-    history_store: HistoryStore = Depends(get_history_store),
+    webhook_repo: WebhookRepository = Depends(get_webhook_repository),
+    history_repo: HistoryRepository = Depends(get_history_repository),
     user_claims: dict = Depends(verify_any_auth),
-    user_store: UserStore = Depends(get_user_store),
+    user_repo: UserRepository = Depends(_get_user_repository),
 ):
-    """
-    Validates up to 30,000 emails in a single request.
-    Leverages async concurrency for high-performance DNS lookups.
-    """
-    start_time = perf_counter()
-    request_id = str(uuid.uuid4())
-
-    emails = payload.emails or []
-    duplicates_removed = 0
-
-    BULK_SIZE_HISTOGRAM.observe(len(emails))
-
-    if payload.dedupe:
-        seen = set()
-        deduped = []
-        for e in emails:
-            normalized = e.lower()
-            if normalized in seen:
-                duplicates_removed += 1
-                continue
-            seen.add(normalized)
-            deduped.append(e)
-        emails = deduped
-        DUPLICATES_REMOVED_COUNTER.inc(duplicates_removed)
-
-    total = len(payload.emails)
-    processed = len(emails)
-
-    results: list[BulkEmailResult] = []
-    history_entries: list[dict] = []
-    valid_count = 0
-    invalid_count = 0
-    error_count = 0
-
-    with VALIDATION_DURATION.labels(endpoint="bulk").time():
-        for email in emails:
-            try:
-                r = await validate_email_internal(email)
-            except Exception:
-                error_count += 1
-                VALIDATION_COUNTER.labels(
-                    endpoint="bulk", status="error", layer="internal"
-                ).inc()
-                logger.exception("Unexpected error validating email=%r", email)
-                item = BulkEmailResult(
-                    email=email,
-                    valid=False,
-                    status="error",
-                    reason="internal_error",
-                    layer="internal",
-                    details={"message": "Unexpected validation error."},
-                )
-                history_entries.append(
-                    {
-                        "email": email,
-                        "is_valid": False,
-                        "request_id": request_id,
-                        "user_id": user_claims.get("sub"),
-                    }
-                )
-                if payload.response_mode in ("all", "invalid_only"):
-                    results.append(item)
-                continue
-
-            layer = r.get("layer", "dns")
-            status = r.get("status", "undeliverable")
-
-            if not r["ok"]:
-                invalid_count += 1
-                VALIDATION_COUNTER.labels(
-                    endpoint="bulk", status=status, layer=layer
-                ).inc()
-                item = BulkEmailResult(
-                    email=email,
-                    valid=False,
-                    status=status,
-                    reason=r.get("reason"),
-                    layer=layer,
-                    details=r.get("details") or {},
-                )
-                history_entries.append(
-                    {
-                        "email": email,
-                        "is_valid": False,
-                        "quality_score": r.get("quality_score"),
-                        "checks": r.get("checks"),
-                        "attributes": r.get("attributes"),
-                        "request_id": request_id,
-                        "user_id": user_claims.get("sub"),
-                    }
-                )
-                if payload.response_mode in ("all", "invalid_only"):
-                    results.append(item)
-                continue
-
-            valid_count += 1
-            VALIDATION_COUNTER.labels(endpoint="bulk", status=status, layer=layer).inc()
-            item = BulkEmailResult(
-                email=email,
-                valid=True,
-                status=status,
-                reason=r.get("reason"),
-                layer=layer,
-                details=r.get("details") or {},
-            )
-            history_entries.append(
-                {
-                    "email": email,
-                    "is_valid": True,
-                    "quality_score": r.get("quality_score"),
-                    "checks": r.get("checks"),
-                    "attributes": r.get("attributes"),
-                    "request_id": request_id,
-                    "user_id": user_claims.get("sub"),
-                }
-            )
-            if payload.response_mode == "all":
-                results.append(item)
-
-    duration_ms = int((perf_counter() - start_time) * 1000)
-
-    summary = BulkValidationSummary(
-        total=total,
-        processed=processed,
-        valid=valid_count,
-        invalid=invalid_count,
-        errors=error_count,
-        deduped=payload.dedupe,
-        duplicates_removed=duplicates_removed,
-        duration_ms=duration_ms,
-        request_id=request_id,
+    """Validate up to 30,000 emails in a single request."""
+    result = await validation_orchestrator.validate_bulk(
+        payload, user_claims.get("sub")
     )
 
-    # Persist all results to history (non-blocking)
-    background_tasks.add_task(history_store.save_many, history_entries)
-    background_tasks.add_task(_record_usage, user_store, user_claims, processed)
+    # Create job record for tracking (bulk completes synchronously but we track it)
+    settings = Settings()
+    request_id = str(uuid.uuid4())
 
-    if payload.response_mode == "summary_only":
-        return BulkValidationResponse(summary=summary, results=None)
+    # Override request_id in history entries and summary
+    for entry in result.history_entries:
+        entry["request_id"] = request_id
 
-    bulk_response = BulkValidationResponse(summary=summary, results=results)
-
-    background_tasks.add_task(
-        dispatch_webhook,
-        webhook_store,
-        {
-            "endpoint": "bulk",
-            "job_id": None,
-            "summary": {
-                "total": summary.total,
-                "processed": summary.processed,
-                "valid": summary.valid,
-                "invalid": summary.invalid,
-                "errors": summary.errors,
-                "duplicates_removed": summary.duplicates_removed,
-                "duration_ms": summary.duration_ms,
-                "request_id": summary.request_id,
-            },
+    # Create job record
+    job_store = ValidationJobStore(settings.scrub_db_url, poolclass=NullPool)
+    job_store.create(
+        request_id=request_id,
+        user_id=user_claims.get("sub"),
+        job_type=JobType.BULK_API,
+        source=JobSource.API,
+        total_items=len(payload.emails) if payload.emails else 0,
+        job_metadata={
+            "processed": result.processed,
+            "duplicates_removed": getattr(
+                result.bulk_response.summary, "duplicates_removed", 0
+            ),
         },
     )
 
-    return bulk_response
+    # Mark as completed immediately (synchronous)
+    job_store.complete_job(
+        request_id=request_id,
+        processed_items=result.processed,
+        valid_count=result.bulk_response.summary.valid,
+        invalid_count=result.bulk_response.summary.invalid,
+        error_count=result.bulk_response.summary.errors,
+    )
+
+    background_tasks.add_task(history_repo.save_many, result.history_entries)
+    background_tasks.add_task(user_repo.record_usage, user_claims, result.processed)
+    if result.webhook_payload:
+        background_tasks.add_task(
+            dispatch_webhook, webhook_repo, result.webhook_payload
+        )
+    return result.bulk_response

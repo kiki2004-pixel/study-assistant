@@ -53,8 +53,8 @@ class Integration:
 
 
 class IntegrationStore:
-    def __init__(self, db_url: str) -> None:
-        self._engine = create_engine(db_url, future=True)
+    def __init__(self, db_url: str, **engine_kwargs) -> None:
+        self._engine = create_engine(db_url, future=True, **engine_kwargs)
 
     def create(self, user_id: int, type: IntegrationType, config: dict) -> Integration:
         stmt = (

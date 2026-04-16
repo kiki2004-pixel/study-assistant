@@ -51,7 +51,10 @@ web-dev:
 	cd web && bun run dev
 
 worker-dev:
-	cd api && PYTHONPATH=src uv run celery -A scrub.jobs.celery_app worker --loglevel=info
+	cd api && PYTHONPATH=src \
+		SCRUB_DB_URL=postgresql+psycopg2://scrub:scrub@localhost:5433/scrub \
+		REDIS_URL=redis://localhost:6379/0 \
+		uv run rq worker --url redis://localhost:6379/0 --with-scheduler
 
 # ── Testing ───────────────────────────────────────────────────────────────────
 

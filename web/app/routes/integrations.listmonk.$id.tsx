@@ -8,6 +8,7 @@ import {
   getListmonkLists,
 } from "api/integrations";
 import { ListmonkLists } from "@app/components/lists/listmonk-lists";
+import { ListCardStyles } from "@app/components/cards/listmonk-list-card";
 import type { Integration, ListmonkList } from "~types/integrations";
 
 export default function IntegrationsListmonkDetail() {
@@ -137,7 +138,13 @@ export default function IntegrationsListmonkDetail() {
         </Flex>
       </Flex>
 
-      <ListmonkLists lists={lists} loading={loading} error={listsError} />
+      <ListCardStyles />
+      <ListmonkLists
+        integrationId={integrationId}
+        lists={lists}
+        loading={loading}
+        error={listsError}
+      />
     </Container>
   );
 }

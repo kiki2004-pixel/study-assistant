@@ -56,10 +56,10 @@ class HistoryRecord:
 
 
 class HistoryStore:
-    def __init__(self, db_url: str) -> None:
+    def __init__(self, db_url: str, **engine_kwargs) -> None:
         if not db_url:
             raise ValueError("SCRUB_DB_URL is required")
-        self._engine = create_engine(db_url, future=True)
+        self._engine = create_engine(db_url, future=True, **engine_kwargs)
 
     def init_schema(self) -> None:
         """Create tables if they don't exist. Call once at app startup."""
@@ -162,6 +162,19 @@ class HistoryStore:
         with self._engine.begin() as conn:
             rows = conn.execute(stmt).fetchall()
         return [self._row_to_record(r) for r in rows]
+
+    def count_by_request_id(self, *, request_id: str, user_id: str) -> int:
+        """Return the number of validated emails belonging to a bulk job."""
+        stmt = (
+            select(func.count())
+            .select_from(validation_history)
+            .where(
+                validation_history.c.request_id == request_id,
+                validation_history.c.user_id == user_id,
+            )
+        )
+        with self._engine.begin() as conn:
+            return conn.execute(stmt).scalar() or 0
 
     def save_many(self, entries: list[dict]) -> None:
         """Persist multiple validation results in a single transaction."""

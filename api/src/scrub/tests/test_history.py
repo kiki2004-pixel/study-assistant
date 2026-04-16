@@ -12,8 +12,11 @@ os.environ.setdefault("LISTMONK_PASS", "test")
 os.environ.setdefault("POSTMARK_WEBHOOK_SECRET", "test")
 os.environ.setdefault("API_KEY", "test-api-key")
 
-from scrub.storage.history_store import HistoryStore  # noqa: E402
-from scrub.routers.history_router import get_history_store  # noqa: E402
+from scrub.models.history_store import HistoryStore  # noqa: E402
+from scrub.repositories.history_repository import (
+    HistoryRepository,
+    get_history_repository,
+)  # noqa: E402
 from scrub.auth import verify_api_key  # noqa: E402
 from main import app  # noqa: E402
 
@@ -37,16 +40,24 @@ def store(db_path):
     return s
 
 
-_FAKE_CALLER = {"sub": "test-user", "email": "test@example.com", "name": "Test", "auth_method": "api_key"}
+_FAKE_CALLER = {
+    "sub": "test-user",
+    "email": "test@example.com",
+    "name": "Test",
+    "auth_method": "api_key",
+}
 
 
 @pytest.fixture()
-def client(store):
-    """TestClient with history store dependency overridden to use temp SQLite."""
-    app.dependency_overrides[get_history_store] = lambda: store
+def client(db_path, store):
+    """TestClient with history repository dependency overridden to use temp SQLite.
+    `store` fixture is included to ensure the schema is initialised before requests."""
+    app.dependency_overrides[get_history_repository] = lambda: HistoryRepository(
+        db_path
+    )
     app.dependency_overrides[verify_api_key] = lambda: _FAKE_CALLER
     yield TestClient(app, headers={"X-API-Key": "test-api-key"})
-    app.dependency_overrides.pop(get_history_store, None)
+    app.dependency_overrides.pop(get_history_repository, None)
     app.dependency_overrides.pop(verify_api_key, None)
 
 
@@ -56,7 +67,9 @@ def client(store):
 
 
 def test_save_and_retrieve_by_email(store):
-    store.save(email="user@example.com", is_valid=True, quality_score=90, user_id="test-user")
+    store.save(
+        email="user@example.com", is_valid=True, quality_score=90, user_id="test-user"
+    )
     records = store.get_by_email(email="user@example.com", user_id="test-user")
     assert len(records) == 1
     assert records[0].email == "user@example.com"
@@ -87,9 +100,15 @@ def test_get_history_filter_by_is_valid(store):
 
 def test_get_by_request_id(store):
     req_id = str(uuid.uuid4())
-    store.save(email="a@example.com", is_valid=True, request_id=req_id, user_id="test-user")
-    store.save(email="b@example.com", is_valid=False, request_id=req_id, user_id="test-user")
-    store.save(email="other@example.com", is_valid=True, user_id="test-user")  # different request
+    store.save(
+        email="a@example.com", is_valid=True, request_id=req_id, user_id="test-user"
+    )
+    store.save(
+        email="b@example.com", is_valid=False, request_id=req_id, user_id="test-user"
+    )
+    store.save(
+        email="other@example.com", is_valid=True, user_id="test-user"
+    )  # different request
     records = store.get_by_request_id(request_id=req_id, user_id="test-user")
     assert len(records) == 2
     emails = {r.email for r in records}
@@ -109,7 +128,12 @@ def test_delete_by_email(store):
 def test_save_many(store):
     req_id = str(uuid.uuid4())
     entries = [
-        {"email": f"m{i}@example.com", "is_valid": i % 2 == 0, "request_id": req_id, "user_id": "test-user"}
+        {
+            "email": f"m{i}@example.com",
+            "is_valid": i % 2 == 0,
+            "request_id": req_id,
+            "user_id": "test-user",
+        }
         for i in range(4)
     ]
     store.save_many(entries)
@@ -185,8 +209,12 @@ def test_get_email_history_not_found(client):
 
 def test_get_bulk_history(client, store):
     req_id = str(uuid.uuid4())
-    store.save(email="x@example.com", is_valid=True, request_id=req_id, user_id="test-user")
-    store.save(email="y@example.com", is_valid=False, request_id=req_id, user_id="test-user")
+    store.save(
+        email="x@example.com", is_valid=True, request_id=req_id, user_id="test-user"
+    )
+    store.save(
+        email="y@example.com", is_valid=False, request_id=req_id, user_id="test-user"
+    )
     r = client.get(f"/validation/history/bulk/{req_id}")
     assert r.status_code == 200
     assert len(r.json()) == 2

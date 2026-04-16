@@ -140,8 +140,8 @@ def verify_api_key(
         )
 
     from scrub.settings import settings
-    from scrub.storage.api_key_store import ApiKeyStore
-    from scrub.storage.user_store import UserStore
+    from scrub.models.api_key_store import ApiKeyStore
+    from scrub.models.user_store import UserStore
 
     key_store = ApiKeyStore(settings.scrub_db_url)
     key = key_store.lookup(api_key)
@@ -154,7 +154,7 @@ def verify_api_key(
 
     user_store = UserStore(settings.scrub_db_url)
     with user_store._engine.begin() as conn:
-        from scrub.storage.user_store import users
+        from scrub.models.user_store import users
         from sqlalchemy import select
 
         row = conn.execute(select(users).where(users.c.id == key.user_id)).first()

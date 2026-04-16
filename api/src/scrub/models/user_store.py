@@ -56,10 +56,10 @@ class UserStats:
 
 
 class UserStore:
-    def __init__(self, db_url: str) -> None:
+    def __init__(self, db_url: str, **engine_kwargs) -> None:
         if not db_url:
             raise ValueError("SCRUB_DB_URL is required")
-        self._engine = create_engine(db_url, future=True)
+        self._engine = create_engine(db_url, future=True, **engine_kwargs)
 
     def init_schema(self) -> None:
         metadata.create_all(self._engine)

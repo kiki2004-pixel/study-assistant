@@ -4,12 +4,18 @@ import { ListmonkListCard } from "@app/components/cards/listmonk-list-card";
 import type { ListmonkList } from "~types/integrations";
 
 interface ListmonkListsProps {
+  integrationId: number;
   lists: ListmonkList[];
   loading: boolean;
   error: string | null;
 }
 
-export function ListmonkLists({ lists, loading, error }: ListmonkListsProps) {
+export function ListmonkLists({
+  integrationId,
+  lists,
+  loading,
+  error,
+}: ListmonkListsProps) {
   return (
     <Box>
       <Text
@@ -75,7 +81,11 @@ export function ListmonkLists({ lists, loading, error }: ListmonkListsProps) {
           gap={3}
         >
           {lists.map((list) => (
-            <ListmonkListCard key={list.id} list={list} />
+            <ListmonkListCard
+              key={list.id}
+              list={list}
+              integrationId={integrationId}
+            />
           ))}
         </Grid>
       )}

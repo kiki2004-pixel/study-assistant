@@ -14,11 +14,11 @@ SRC_PATH = PROJECT_ROOT / "src"
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))
 
-from scrub.storage.watermark_store import metadata as watermark_metadata  # noqa: E402
-from scrub.storage.webhook_store import metadata as webhook_metadata  # noqa: E402
-from scrub.storage.user_store import metadata as user_metadata  # noqa: E402
-from scrub.storage.history_store import metadata as history_metadata  # noqa: E402
-from scrub.storage.api_key_store import metadata as api_key_metadata  # noqa: E402
+from scrub.models.watermark_store import metadata as watermark_metadata  # noqa: E402
+from scrub.models.webhook_store import metadata as webhook_metadata  # noqa: E402
+from scrub.models.user_store import metadata as user_metadata  # noqa: E402
+from scrub.models.history_store import metadata as history_metadata  # noqa: E402
+from scrub.models.api_key_store import metadata as api_key_metadata  # noqa: E402
 from sqlalchemy import MetaData  # noqa: E402
 
 # Combine all store metadata so Alembic autogenerate covers every table.

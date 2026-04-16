@@ -12,10 +12,22 @@ export interface ListmonkList {
   name: string;
   subscriber_count: number;
   type: string;
+  active_job_request_id?: string | null;
 }
 
 export interface ConnectionTestResult {
   success: boolean;
   message: string;
   subscriber_count: number | null;
+}
+
+export interface ListValidateResponse {
+  job_id: string;
+  request_id: string;
+  status: string;
+}
+
+export interface ValidationProgressResponse {
+  request_id: string;
+  validated: number;
 }

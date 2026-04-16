@@ -3,6 +3,8 @@ import type {
   ConnectionTestResult,
   Integration,
   ListmonkList,
+  ListValidateResponse,
+  ValidationProgressResponse,
 } from "~types/integrations";
 
 export function listListmonkIntegrations(): Promise<Integration[]> {
@@ -46,4 +48,24 @@ export function testListmonkIntegration(
 
 export function getListmonkLists(id: number): Promise<ListmonkList[]> {
   return apiFetch<ListmonkList[]>(`/listmonk/integrations/${id}/lists`);
+}
+
+export function validateListmonkList(
+  integrationId: number,
+  listId: number,
+): Promise<ListValidateResponse> {
+  return apiPost<ListValidateResponse>(
+    `/listmonk/integrations/${integrationId}/lists/${listId}/validate`,
+    {},
+  );
+}
+
+export function getValidationProgress(
+  integrationId: number,
+  listId: number,
+  requestId: string,
+): Promise<ValidationProgressResponse> {
+  return apiFetch<ValidationProgressResponse>(
+    `/listmonk/integrations/${integrationId}/lists/${listId}/progress/${requestId}`,
+  );
 }

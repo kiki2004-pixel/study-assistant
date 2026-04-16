@@ -1,29 +1,27 @@
+import uuid
 from datetime import datetime
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, HttpUrl
 
 from scrub.auth import verify_token
-from scrub.settings import settings
-from scrub.storage.integration_store import IntegrationStore, IntegrationType
-from scrub.storage.user_store import UserStore
+from scrub.jobs.worker import get_queue, start_list_validation
+from scrub.models.validation_job_store import JobSource, JobType
+from scrub.repositories.history_repository import (
+    HistoryRepository,
+    get_history_repository,
+)
+from scrub.repositories.integration_repository import (
+    IntegrationRepository,
+    get_integration_repository,
+)
+from scrub.repositories.validation_job_repository import (
+    ValidationJobRepository,
+    get_validation_job_repository,
+)
+from scrub.services import listmonk_service
 
 router = APIRouter()
-
-
-# --- Dependency factories ---
-
-
-def get_integration_store() -> IntegrationStore:
-    return IntegrationStore(settings.scrub_db_url)
-
-
-def get_user_store() -> UserStore:
-    return UserStore(settings.scrub_db_url)
-
-
-# --- Request / Response Models ---
 
 
 class ListmonkConfig(BaseModel):
@@ -50,105 +48,62 @@ class ListmonkList(BaseModel):
     name: str
     subscriber_count: int
     type: str
+    active_job_request_id: str | None = None
 
 
-# --- Helper ---
+class ValidateListResponse(BaseModel):
+    job_id: str
+    request_id: str
+    status: str = "queued"
 
 
-def _require_owned(
-    integration_id: int,
-    user_id: int,
-    store: IntegrationStore,
-):
-    """Fetch integration by id and verify it belongs to the user."""
-    integration = store.get_by_id(integration_id)
-    if not integration or integration.user_id != user_id:
-        raise HTTPException(status_code=404, detail="Integration not found.")
-    return integration
-
-
-async def _httpx_client(cfg: dict):
-    return httpx.AsyncClient(
-        base_url=cfg["url"],
-        auth=(cfg["username"], cfg["api_token"]),
-        timeout=5.0,
-    )
-
-
-# --- Collection endpoints ---
+class ValidationProgressResponse(BaseModel):
+    request_id: str
+    validated: int
 
 
 @router.get("/integrations", response_model=list[IntegrationSummary])
 async def list_integrations(
     claims: dict = Depends(verify_token),
-    integration_store: IntegrationStore = Depends(get_integration_store),
-    user_store: UserStore = Depends(get_user_store),
+    repo: IntegrationRepository = Depends(get_integration_repository),
 ):
     """List all Listmonk integrations for the current user."""
-    user = user_store.get_or_create(
-        sub=claims["sub"],
-        email=claims.get("email"),
-        name=claims.get("name"),
-    )
-    integrations = integration_store.list_by_type(user.id, IntegrationType.listmonk)
-    return [
-        IntegrationSummary(
-            id=i.id,
-            url=i.config["url"],
-            username=i.config["username"],
-            created_at=i.created_at,
-        )
-        for i in integrations
-    ]
+    return repo.list(claims["sub"], claims.get("email"), claims.get("name"))
 
 
 @router.post("/integrations", response_model=IntegrationSummary, status_code=201)
 async def create_integration(
     payload: ListmonkConfig,
     claims: dict = Depends(verify_token),
-    integration_store: IntegrationStore = Depends(get_integration_store),
-    user_store: UserStore = Depends(get_user_store),
+    repo: IntegrationRepository = Depends(get_integration_repository),
 ):
     """Create a new Listmonk integration for the current user."""
-    user = user_store.get_or_create(
-        sub=claims["sub"],
-        email=claims.get("email"),
-        name=claims.get("name"),
-    )
     config = {
         "url": str(payload.url),
         "username": payload.username,
         "api_token": payload.api_token,
     }
-    integration = integration_store.create(user.id, IntegrationType.listmonk, config)
-    return IntegrationSummary(
-        id=integration.id,
-        url=integration.config["url"],
-        username=integration.config["username"],
-        created_at=integration.created_at,
-    )
+    return repo.create(claims["sub"], claims.get("email"), claims.get("name"), config)
 
 
 @router.get("/integrations/{integration_id}", response_model=IntegrationSummary)
 async def get_integration(
     integration_id: int,
     claims: dict = Depends(verify_token),
-    integration_store: IntegrationStore = Depends(get_integration_store),
-    user_store: UserStore = Depends(get_user_store),
+    repo: IntegrationRepository = Depends(get_integration_repository),
 ):
     """Get a single Listmonk integration."""
-    user = user_store.get_or_create(
-        sub=claims["sub"],
-        email=claims.get("email"),
-        name=claims.get("name"),
+    integration = repo.get_owned(
+        integration_id, claims["sub"], claims.get("email"), claims.get("name")
     )
-    integration = _require_owned(integration_id, user.id, integration_store)
-    return IntegrationSummary(
-        id=integration.id,
-        url=integration.config["url"],
-        username=integration.config["username"],
-        created_at=integration.created_at,
-    )
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found.")
+    return {
+        "id": integration.id,
+        "url": integration.config["url"],
+        "username": integration.config["username"],
+        "created_at": integration.created_at,
+    }
 
 
 @router.put("/integrations/{integration_id}", response_model=IntegrationSummary)
@@ -156,45 +111,33 @@ async def update_integration(
     integration_id: int,
     payload: ListmonkConfig,
     claims: dict = Depends(verify_token),
-    integration_store: IntegrationStore = Depends(get_integration_store),
-    user_store: UserStore = Depends(get_user_store),
+    repo: IntegrationRepository = Depends(get_integration_repository),
 ):
     """Update credentials for a Listmonk integration."""
-    user = user_store.get_or_create(
-        sub=claims["sub"],
-        email=claims.get("email"),
-        name=claims.get("name"),
-    )
-    _require_owned(integration_id, user.id, integration_store)
     config = {
         "url": str(payload.url),
         "username": payload.username,
         "api_token": payload.api_token,
     }
-    integration = integration_store.update(integration_id, config)
-    return IntegrationSummary(
-        id=integration.id,
-        url=integration.config["url"],
-        username=integration.config["username"],
-        created_at=integration.created_at,
+    result = repo.update_owned(
+        integration_id, claims["sub"], claims.get("email"), claims.get("name"), config
     )
+    if not result:
+        raise HTTPException(status_code=404, detail="Integration not found.")
+    return result
 
 
 @router.delete("/integrations/{integration_id}", status_code=204)
 async def delete_integration(
     integration_id: int,
     claims: dict = Depends(verify_token),
-    integration_store: IntegrationStore = Depends(get_integration_store),
-    user_store: UserStore = Depends(get_user_store),
+    repo: IntegrationRepository = Depends(get_integration_repository),
 ):
     """Delete a Listmonk integration."""
-    user = user_store.get_or_create(
-        sub=claims["sub"],
-        email=claims.get("email"),
-        name=claims.get("name"),
-    )
-    _require_owned(integration_id, user.id, integration_store)
-    integration_store.delete_by_id(integration_id)
+    if not repo.delete_owned(
+        integration_id, claims["sub"], claims.get("email"), claims.get("name")
+    ):
+        raise HTTPException(status_code=404, detail="Integration not found.")
 
 
 @router.post(
@@ -203,90 +146,84 @@ async def delete_integration(
 async def test_integration(
     integration_id: int,
     claims: dict = Depends(verify_token),
-    integration_store: IntegrationStore = Depends(get_integration_store),
-    user_store: UserStore = Depends(get_user_store),
+    repo: IntegrationRepository = Depends(get_integration_repository),
 ):
     """Test a saved Listmonk integration."""
-    user = user_store.get_or_create(
-        sub=claims["sub"],
-        email=claims.get("email"),
-        name=claims.get("name"),
+    integration = repo.get_owned(
+        integration_id, claims["sub"], claims.get("email"), claims.get("name")
     )
-    integration = _require_owned(integration_id, user.id, integration_store)
-    cfg = integration.config
-
-    try:
-        async with await _httpx_client(cfg) as client:
-            health = await client.get("/api/health")
-            health.raise_for_status()
-
-            subs = await client.get(
-                "/api/subscribers", params={"page": 1, "per_page": 1}
-            )
-            subs.raise_for_status()
-            total = subs.json().get("data", {}).get("total", 0)
-
-            return ConnectionTestResponse(
-                success=True,
-                message="Connection successful",
-                subscriber_count=total,
-            )
-
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Listmonk returned {e.response.status_code} — check your credentials.",
-        )
-    except httpx.ConnectError:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Could not reach Listmonk at {cfg['url']} — check the URL.",
-        )
-    except httpx.TimeoutException:
-        raise HTTPException(status_code=408, detail="Connection to Listmonk timed out.")
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found.")
+    return await listmonk_service.test_connection(integration.config)
 
 
 @router.get("/integrations/{integration_id}/lists", response_model=list[ListmonkList])
 async def get_integration_lists(
     integration_id: int,
     claims: dict = Depends(verify_token),
-    integration_store: IntegrationStore = Depends(get_integration_store),
-    user_store: UserStore = Depends(get_user_store),
+    repo: IntegrationRepository = Depends(get_integration_repository),
+    job_repo: ValidationJobRepository = Depends(get_validation_job_repository),
 ):
-    """Fetch mailing lists from a Listmonk integration."""
-    user = user_store.get_or_create(
-        sub=claims["sub"],
-        email=claims.get("email"),
-        name=claims.get("name"),
+    """Fetch mailing lists from a Listmonk integration, enriched with active job status."""
+    integration = repo.get_owned(
+        integration_id, claims["sub"], claims.get("email"), claims.get("name")
     )
-    integration = _require_owned(integration_id, user.id, integration_store)
-    cfg = integration.config
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found.")
+    lists = await listmonk_service.get_lists(integration.config)
+    active_jobs = job_repo.get_active_request_ids_by_list(claims["sub"], integration_id)
+    return [
+        {**lst, "active_job_request_id": active_jobs.get(lst["id"])} for lst in lists
+    ]
 
-    try:
-        async with await _httpx_client(cfg) as client:
-            resp = await client.get("/api/lists", params={"page": 1, "per_page": 100})
-            resp.raise_for_status()
-            results = resp.json().get("data", {}).get("results", [])
 
-            return [
-                ListmonkList(
-                    id=lst["id"],
-                    name=lst["name"],
-                    subscriber_count=lst.get("subscriber_count", 0),
-                    type=lst.get("type", ""),
-                )
-                for lst in results
-            ]
+@router.post(
+    "/integrations/{integration_id}/lists/{list_id}/validate",
+    response_model=ValidateListResponse,
+    status_code=202,
+)
+async def validate_list(
+    integration_id: int,
+    list_id: int,
+    claims: dict = Depends(verify_token),
+    repo: IntegrationRepository = Depends(get_integration_repository),
+    job_repo: ValidationJobRepository = Depends(get_validation_job_repository),
+):
+    """Dispatch a job to validate all subscribers in a Listmonk list in batches of 100."""
+    integration = repo.get_owned(
+        integration_id, claims["sub"], claims.get("email"), claims.get("name")
+    )
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found.")
+    request_id = str(uuid.uuid4())
+    # Create the job record before enqueuing so /jobs/progress is immediately pollable.
+    # The worker will update total_items and list_name once it fetches them from Listmonk.
+    job_repo.create_job(
+        request_id=request_id,
+        user_id=claims["sub"],
+        job_type=JobType.LISTMONK_LIST,
+        source=JobSource.INTEGRATION,
+        integration_id=integration_id,
+        integration_type="listmonk",
+        list_id=list_id,
+    )
+    job = get_queue().enqueue(
+        start_list_validation, integration_id, list_id, claims["sub"], request_id
+    )
+    return {"job_id": job.id, "request_id": request_id, "status": "queued"}
 
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Listmonk returned {e.response.status_code} — could not fetch lists.",
-        )
-    except httpx.ConnectError:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Could not reach Listmonk at {cfg['url']}.",
-        )
-    except httpx.TimeoutException:
-        raise HTTPException(status_code=408, detail="Connection to Listmonk timed out.")
+
+@router.get(
+    "/integrations/{integration_id}/lists/{list_id}/progress/{request_id}",
+    response_model=ValidationProgressResponse,
+)
+async def get_validation_progress(
+    integration_id: int,
+    list_id: int,
+    request_id: str,
+    claims: dict = Depends(verify_token),
+    history_repo: HistoryRepository = Depends(get_history_repository),
+):
+    """Return the number of emails validated so far for a running list validation job."""
+    validated = history_repo.count_by_request_id(request_id, claims["sub"])
+    return {"request_id": request_id, "validated": validated}

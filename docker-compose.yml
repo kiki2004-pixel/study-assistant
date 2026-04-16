@@ -17,8 +17,7 @@ services:
       - SCRUB_DB_URL=${SCRUB_DB_URL:-postgresql+psycopg2://scrub:scrub@scrub_db:5432/scrub}
       - API_KEY=${API_KEY:-local-dev-api-key}
       - ZITADEL_DOMAIN=${ZITADEL_DOMAIN:-http://zitadel:8080}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
     restart: unless-stopped
     depends_on:
       - listmonk_app
@@ -52,17 +51,16 @@ services:
       - VALIDATION_BATCH_SIZE=${VALIDATION_BATCH_SIZE:-250}
       - VALIDATION_POLL_INTERVAL_SECONDS=${VALIDATION_POLL_INTERVAL_SECONDS:-60}
       - SCRUB_DB_URL=postgresql+psycopg2://scrub:scrub@scrub_db:5432/scrub
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
     command:
       [
         "/app/.venv/bin/python",
         "-m",
-        "celery",
-        "-A",
-        "scrub.jobs.celery_app",
+        "rq",
         "worker",
-        "--loglevel=info",
+        "--url",
+        "redis://redis:6379/0",
+        "--with-scheduler",
       ]
     restart: unless-stopped
 
