@@ -75,7 +75,13 @@ export default function AccountSettings() {
 
       {/* Active sessions */}
       <Box>
-        <Heading fontSize="md" fontWeight="500" fontFamily="mono" letterSpacing="-0.01em" mb={5}>
+        <Heading
+          fontSize="md"
+          fontWeight="500"
+          fontFamily="mono"
+          letterSpacing="-0.01em"
+          mb={5}
+        >
           Active sessions
         </Heading>
 

@@ -5,28 +5,45 @@ import type {
   ListmonkList,
 } from "@types/integrations";
 
-export function getListmonkIntegration(): Promise<Integration> {
-  return apiFetch<Integration>("/listmonk/integration");
+export function listListmonkIntegrations(): Promise<Integration[]> {
+  return apiFetch<Integration[]>("/listmonk/integrations");
 }
 
-export function saveListmonkIntegration(
+export function createListmonkIntegration(
   url: string,
   username: string,
   api_token: string,
 ): Promise<Integration> {
-  return apiPut<Integration>("/listmonk/integration", {
+  return apiPost<Integration>("/listmonk/integrations", {
     body: JSON.stringify({ url, username, api_token }),
   });
 }
 
-export function deleteListmonkIntegration(): Promise<void> {
-  return apiDelete("/listmonk/integration");
+export function getListmonkIntegration(id: number): Promise<Integration> {
+  return apiFetch<Integration>(`/listmonk/integrations/${id}`);
 }
 
-export function testListmonkIntegration(): Promise<ConnectionTestResult> {
-  return apiPost<ConnectionTestResult>("/listmonk/integration/test", {});
+export function updateListmonkIntegration(
+  id: number,
+  url: string,
+  username: string,
+  api_token: string,
+): Promise<Integration> {
+  return apiPut<Integration>(`/listmonk/integrations/${id}`, {
+    body: JSON.stringify({ url, username, api_token }),
+  });
 }
 
-export function getListmonkLists(): Promise<ListmonkList[]> {
-  return apiFetch<ListmonkList[]>("/listmonk/integration/lists");
+export function deleteListmonkIntegration(id: number): Promise<void> {
+  return apiDelete(`/listmonk/integrations/${id}`);
+}
+
+export function testListmonkIntegration(
+  id: number,
+): Promise<ConnectionTestResult> {
+  return apiPost<ConnectionTestResult>(`/listmonk/integrations/${id}/test`, {});
+}
+
+export function getListmonkLists(id: number): Promise<ListmonkList[]> {
+  return apiFetch<ListmonkList[]>(`/listmonk/integrations/${id}/lists`);
 }

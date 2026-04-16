@@ -1,34 +1,26 @@
 import { useEffect, useState } from "react";
-import {
-  Box,
-  Button,
-  Container,
-  Flex,
-  Grid,
-  Heading,
-  Text,
-} from "@chakra-ui/react";
-import { FiArrowLeft, FiList } from "react-icons/fi";
+import { Box, Button, Container, Flex, Heading, Text } from "@chakra-ui/react";
+import { FiArrowLeft, FiChevronRight, FiPlus } from "react-icons/fi";
 import { Link } from "react-router";
-import { getListmonkLists, getListmonkIntegration } from "api/integrations";
-import { ListmonkListCard } from "@app/components/lists/listmonk-list-card";
-import type { ListmonkList } from "@types/integrations";
+import { listListmonkIntegrations } from "api/integrations";
+import { ConnectListmonkModal } from "@app/components/modals/connect-listmonk-modal";
+import type { Integration } from "@types/integrations";
 
 export default function IntegrationsListmonk() {
-  const [lists, setLists] = useState<ListmonkList[]>([]);
-  const [url, setUrl] = useState<string | null>(null);
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  function load() {
+    setLoading(true);
+    listListmonkIntegrations()
+      .then(setIntegrations)
+      .catch(() => setIntegrations([]))
+      .finally(() => setLoading(false));
+  }
 
   useEffect(() => {
-    getListmonkIntegration()
-      .then((integration) => {
-        setUrl(integration.url);
-        return getListmonkLists();
-      })
-      .then(setLists)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+    load();
   }, []);
 
   return (
@@ -65,84 +57,112 @@ export default function IntegrationsListmonk() {
           >
             Listmonk
           </Heading>
-          {url && (
-            <Text fontSize="xs" color="fg.muted" fontFamily="mono">
-              {url}
-            </Text>
-          )}
+          <Text fontSize="sm" color="fg.muted">
+            Self-hosted newsletter & mailing list manager.
+          </Text>
         </Box>
+        <Button
+          size="sm"
+          bg="fg"
+          color="bg"
+          borderRadius="md"
+          fontWeight="500"
+          _hover={{ opacity: 0.85 }}
+          gap={1.5}
+          flexShrink={0}
+          onClick={() => setModalOpen(true)}
+        >
+          <FiPlus size={14} />
+          Add new
+        </Button>
       </Flex>
 
-      {/* Lists */}
-      <Box>
-        <Text
-          fontSize="xs"
-          fontWeight="500"
-          color="fg.muted"
-          mb={3}
-          textTransform="uppercase"
-          letterSpacing="0.06em"
-        >
-          Lists
-        </Text>
-
+      {/* Instance list */}
+      <Box maxW="2xl">
         {loading ? (
-          <Box
-            borderWidth="1px"
-            borderColor="border"
-            borderRadius="md"
-            px={4}
-            py={6}
-          >
-            <Text fontSize="sm" color="fg.muted" textAlign="center">
-              Loading lists…
-            </Text>
-          </Box>
-        ) : error ? (
-          <Box
-            borderWidth="1px"
-            borderColor="border"
-            borderRadius="md"
-            px={4}
-            py={6}
-          >
-            <Text fontSize="sm" color="red.500" textAlign="center">
-              {error}
-            </Text>
-          </Box>
-        ) : lists.length === 0 ? (
+          <Text fontSize="sm" color="fg.muted">
+            Loading…
+          </Text>
+        ) : integrations.length === 0 ? (
           <Flex
             direction="column"
             align="center"
-            gap={2}
+            gap={3}
             borderWidth="1px"
             borderColor="border"
-            borderRadius="md"
+            borderRadius="lg"
             borderStyle="dashed"
-            py={10}
+            py={14}
           >
-            <Box color="fg.muted">
-              <FiList size={20} />
-            </Box>
             <Text fontSize="sm" color="fg.muted">
-              No lists found in your Listmonk instance.
+              No Listmonk instances connected yet.
             </Text>
+            <Button
+              size="sm"
+              bg="fg"
+              color="bg"
+              borderRadius="md"
+              fontWeight="500"
+              _hover={{ opacity: 0.85 }}
+              gap={1.5}
+              onClick={() => setModalOpen(true)}
+            >
+              <FiPlus size={14} />
+              Add new
+            </Button>
           </Flex>
         ) : (
-          <Grid
-            templateColumns={{
-              base: "1fr",
-              sm: "repeat(2, 1fr)",
-              md: "repeat(3, 1fr)",
-            }}
-            gap={3}
-          >
-            {lists.map((list) => (
-              <ListmonkListCard key={list.id} list={list} />
+          <Flex direction="column" gap={2}>
+            {integrations.map((integration) => (
+              <Link
+                key={integration.id}
+                to={`/integrations/listmonk/${integration.id}`}
+              >
+                <Flex
+                  align="center"
+                  justify="space-between"
+                  p={4}
+                  borderWidth="1px"
+                  borderColor="border"
+                  borderRadius="lg"
+                  bg="bg.subtle"
+                  gap={3}
+                  cursor="pointer"
+                  _hover={{ borderColor: "fg.muted", bg: "bg.muted" }}
+                  transition="all 0.15s"
+                >
+                  <Box minW={0} flex={1}>
+                    <Text
+                      fontSize="sm"
+                      fontFamily="mono"
+                      color="fg"
+                      truncate
+                      mb={0.5}
+                    >
+                      {integration.url}
+                    </Text>
+                    <Text fontSize="xs" color="fg.muted">
+                      {integration.username}
+                    </Text>
+                  </Box>
+                  <Box color="fg.muted" flexShrink={0}>
+                    <FiChevronRight size={16} />
+                  </Box>
+                </Flex>
+              </Link>
             ))}
-          </Grid>
+          </Flex>
         )}
       </Box>
+
+      <ConnectListmonkModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onConnected={(integration) => {
+          setIntegrations((prev) => [integration, ...prev]);
+          setModalOpen(false);
+        }}
+      />
     </Container>
   );
 }

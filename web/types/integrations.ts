@@ -1,6 +1,7 @@
 export type IntegrationType = "listmonk";
 
 export interface Integration {
+  id: number;
   url: string;
   username: string;
   created_at: string;

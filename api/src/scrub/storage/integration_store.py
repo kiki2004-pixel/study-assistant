@@ -10,12 +10,11 @@ from sqlalchemy import (
     Integer,
     MetaData,
     Table,
-    UniqueConstraint,
     func,
     select,
     create_engine,
 )
-from sqlalchemy.dialects.postgresql import JSONB, insert as pg_insert
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy import Enum as SAEnum
 
 metadata = MetaData()
@@ -40,7 +39,6 @@ integrations = Table(
     Column("config", JSONB, nullable=False, server_default="{}"),
     Column("created_at", DateTime, nullable=False, server_default=func.now()),
     Column("updated_at", DateTime, nullable=False, server_default=func.now()),
-    UniqueConstraint("user_id", "type", name="uq_integrations_user_type"),
 )
 
 
@@ -58,30 +56,34 @@ class IntegrationStore:
     def __init__(self, db_url: str) -> None:
         self._engine = create_engine(db_url, future=True)
 
-    def upsert(self, user_id: int, type: IntegrationType, config: dict) -> Integration:
-        """Insert or update an integration for a user. One row per (user_id, type)."""
+    def create(self, user_id: int, type: IntegrationType, config: dict) -> Integration:
         stmt = (
-            pg_insert(integrations)
+            integrations.insert()
             .values(user_id=user_id, type=type.value, config=config)
-            .on_conflict_do_update(
-                constraint="uq_integrations_user_type",
-                set_={"config": config, "updated_at": func.now()},
-            )
             .returning(integrations)
         )
         with self._engine.begin() as conn:
             row = conn.execute(stmt).first()
         return _row_to_integration(row)
 
-    def get(self, user_id: int, type: IntegrationType) -> Integration | None:
+    def get_by_id(self, integration_id: int) -> Integration | None:
         with self._engine.begin() as conn:
             row = conn.execute(
-                select(integrations).where(
+                select(integrations).where(integrations.c.id == integration_id)
+            ).first()
+        return _row_to_integration(row) if row else None
+
+    def list_by_type(self, user_id: int, type: IntegrationType) -> list[Integration]:
+        with self._engine.begin() as conn:
+            rows = conn.execute(
+                select(integrations)
+                .where(
                     integrations.c.user_id == user_id,
                     integrations.c.type == type.value,
                 )
-            ).first()
-        return _row_to_integration(row) if row else None
+                .order_by(integrations.c.created_at.desc())
+            ).fetchall()
+        return [_row_to_integration(r) for r in rows]
 
     def list_for_user(self, user_id: int) -> list[Integration]:
         with self._engine.begin() as conn:
@@ -92,15 +94,25 @@ class IntegrationStore:
             ).fetchall()
         return [_row_to_integration(r) for r in rows]
 
-    def delete(self, user_id: int, type: IntegrationType) -> bool:
+    def update(self, integration_id: int, config: dict) -> Integration | None:
+        from sqlalchemy import update
+
+        stmt = (
+            update(integrations)
+            .where(integrations.c.id == integration_id)
+            .values(config=config, updated_at=func.now())
+            .returning(integrations)
+        )
+        with self._engine.begin() as conn:
+            row = conn.execute(stmt).first()
+        return _row_to_integration(row) if row else None
+
+    def delete_by_id(self, integration_id: int) -> bool:
         from sqlalchemy import delete
 
         with self._engine.begin() as conn:
             result = conn.execute(
-                delete(integrations).where(
-                    integrations.c.user_id == user_id,
-                    integrations.c.type == type.value,
-                )
+                delete(integrations).where(integrations.c.id == integration_id)
             )
         return result.rowcount > 0
 

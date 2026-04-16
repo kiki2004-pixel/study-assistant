@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Box, Button, Dialog, Flex, Input, Text } from "@chakra-ui/react";
 import { FiCheck } from "react-icons/fi";
 import {
+  createListmonkIntegration,
   deleteListmonkIntegration,
-  saveListmonkIntegration,
   testListmonkIntegration,
 } from "api/integrations";
 import type { Integration } from "@types/integrations";
@@ -63,18 +63,18 @@ export function ConnectListmonkModal({
     setError(null);
 
     try {
-      const integration = await saveListmonkIntegration(
+      const integration = await createListmonkIntegration(
         trimmedUrl,
         trimmedUsername,
         trimmedToken,
       );
-      const test = await testListmonkIntegration();
+      const test = await testListmonkIntegration(integration.id);
       if (!test.success) {
         try {
-          await deleteListmonkIntegration();
+          await deleteListmonkIntegration(integration.id);
         } catch {}
         setError(
-          test.message || "Connection test failed. Check your API token.",
+          test.message || "Connection test failed. Check your credentials.",
         );
         return;
       }
@@ -118,7 +118,7 @@ export function ConnectListmonkModal({
               </Dialog.Header>
               <Dialog.Body px={6} py={5}>
                 <Text fontSize="sm" color="fg.muted" mb={5}>
-                  Enter your Listmonk URL and API token. We'll test the
+                  Enter your Listmonk URL and API credentials. We'll test the
                   connection before saving.
                 </Text>
                 <Flex direction="column" gap={4}>
@@ -262,7 +262,7 @@ export function ConnectListmonkModal({
                 </Box>
                 <Text fontSize="sm" color="fg.muted">
                   Your Listmonk instance is now connected. You can validate
-                  lists from the Integrations page.
+                  lists from the integration page.
                 </Text>
               </Dialog.Body>
               <Dialog.Footer px={6} pb={6}>

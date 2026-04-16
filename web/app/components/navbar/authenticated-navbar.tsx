@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
-import { Avatar, Box, Container, Flex, Icon, Text } from "@chakra-ui/react";
-import { FiCheckCircle } from "react-icons/fi";
+import {
+  Avatar,
+  Box,
+  Container,
+  Flex,
+  Icon,
+  IconButton,
+  Text,
+} from "@chakra-ui/react";
+import { FiCheckCircle, FiMenu, FiX } from "react-icons/fi";
 import { useNavigate, useLocation } from "react-router";
 import { getMe } from "api/context";
 import type { UserContext } from "types/context";
@@ -20,15 +28,30 @@ export function AuthenticatedNavbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [context, setContext] = useState<UserContext | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     if (!auth.isAuthenticated || !auth.user?.access_token) return;
     getMe().then(setContext).catch(console.error);
   }, [auth.isAuthenticated, auth.user?.access_token]);
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  function handleNav(href: string) {
+    navigate(href);
+    setMobileOpen(false);
+  }
+
   return (
     <Box position="sticky" top={0} zIndex={100} bg="bg">
-      <Box py={4}>
+      <Box
+        py={4}
+        borderBottomWidth={mobileOpen ? "1px" : "0"}
+        borderColor="border"
+      >
         <Container maxW="7xl">
           <Flex align="center" justify="space-between">
             {/* Logo */}
@@ -50,7 +73,7 @@ export function AuthenticatedNavbar() {
               </Text>
             </Flex>
 
-            {/* Nav links */}
+            {/* Nav links — desktop */}
             <Flex align="center" gap={7} display={{ base: "none", md: "flex" }}>
               {NAV_LINKS.map((link) =>
                 link.dropdown ? (
@@ -88,15 +111,88 @@ export function AuthenticatedNavbar() {
               )}
               <Avatar.Root
                 colorPalette="red"
+                display={{ base: "none", md: "flex" }}
                 onClick={() => navigate("/settings/general")}
               >
                 <Avatar.Fallback />
                 <Avatar.Image src="https://bit.ly/broken-link" />
               </Avatar.Root>
+
+              {/* Hamburger — mobile only */}
+              <IconButton
+                display={{ base: "flex", md: "none" }}
+                aria-label="Toggle menu"
+                variant="ghost"
+                size="sm"
+                onClick={() => setMobileOpen((o) => !o)}
+              >
+                <Icon as={mobileOpen ? FiX : FiMenu} boxSize={5} />
+              </IconButton>
             </Flex>
           </Flex>
         </Container>
       </Box>
+
+      {/* Mobile menu */}
+      {mobileOpen && (
+        <Box
+          display={{ base: "block", md: "none" }}
+          borderBottomWidth="1px"
+          borderColor="border"
+          bg="bg"
+        >
+          <Container maxW="7xl" py={3}>
+            <Flex direction="column" gap={1}>
+              {NAV_LINKS.map((link) => (
+                <Text
+                  key={link.label}
+                  px={3}
+                  py={2.5}
+                  fontSize="sm"
+                  fontWeight="medium"
+                  borderRadius="md"
+                  color={
+                    location.pathname.startsWith(link.href) ? "fg" : "fg.muted"
+                  }
+                  bg={
+                    location.pathname.startsWith(link.href)
+                      ? "bg.muted"
+                      : "transparent"
+                  }
+                  cursor="pointer"
+                  _hover={{ color: "fg", bg: "bg.muted" }}
+                  transition="all 0.1s"
+                  onClick={() => handleNav(link.href)}
+                >
+                  {link.label}
+                </Text>
+              ))}
+
+              {/* Divider + account */}
+              <Box borderTopWidth="1px" borderColor="border" mt={1} pt={2}>
+                <Flex
+                  align="center"
+                  gap={3}
+                  px={3}
+                  py={2.5}
+                  borderRadius="md"
+                  cursor="pointer"
+                  _hover={{ bg: "bg.muted" }}
+                  onClick={() => handleNav("/settings/general")}
+                >
+                  <Avatar.Root colorPalette="red" size="xs">
+                    <Avatar.Fallback />
+                    <Avatar.Image src="https://bit.ly/broken-link" />
+                  </Avatar.Root>
+                  <Text fontSize="sm" color="fg.muted" fontWeight="medium">
+                    Settings
+                  </Text>
+                </Flex>
+              </Box>
+            </Flex>
+          </Container>
+        </Box>
+      )}
     </Box>
   );
 }

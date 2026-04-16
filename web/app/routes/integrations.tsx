@@ -2,51 +2,49 @@ import { useEffect, useState } from "react";
 import {
   Badge,
   Box,
-  Button,
   Container,
   Flex,
   Heading,
+  SimpleGrid,
   Text,
 } from "@chakra-ui/react";
-import { FiCheck, FiList } from "react-icons/fi";
+import { FiList } from "react-icons/fi";
 import { Link } from "react-router";
-import {
-  deleteListmonkIntegration,
-  getListmonkIntegration,
-} from "api/integrations";
-import { ConnectListmonkModal } from "@app/components/modals/connect-listmonk-modal";
-import type { Integration } from "@types/integrations";
+import { listListmonkIntegrations } from "api/integrations";
+
+interface IntegrationTypeTile {
+  key: string;
+  label: string;
+  description: string;
+  href: string;
+  icon: React.ReactNode;
+}
+
+const INTEGRATION_TYPES: IntegrationTypeTile[] = [
+  {
+    key: "listmonk",
+    label: "Listmonk",
+    description: "Self-hosted newsletter & mailing list manager.",
+    href: "/integrations/listmonk",
+    icon: <FiList size={22} />,
+  },
+];
 
 export default function Integrations() {
-  const [integration, setIntegration] = useState<Integration | null>(null);
-  const [loadingIntegration, setLoadingIntegration] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [disconnecting, setDisconnecting] = useState(false);
-  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const [listmonkCount, setListmonkCount] = useState<number | null>(null);
 
   useEffect(() => {
-    getListmonkIntegration()
-      .then(setIntegration)
-      .catch(() => setIntegration(null))
-      .finally(() => setLoadingIntegration(false));
+    listListmonkIntegrations()
+      .then((list) => setListmonkCount(list.length))
+      .catch(() => setListmonkCount(0));
   }, []);
 
-  async function handleDisconnect() {
-    setDisconnecting(true);
-    try {
-      await deleteListmonkIntegration();
-      setIntegration(null);
-      setConfirmDisconnect(false);
-    } catch {
-      // leave state unchanged
-    } finally {
-      setDisconnecting(false);
-    }
-  }
+  const countMap: Record<string, number> = {
+    listmonk: listmonkCount ?? 0,
+  };
 
   return (
     <Container maxW="7xl" py={10}>
-      {/* Header */}
       <Box mb={10}>
         <Heading
           fontSize={{ base: "2xl", md: "3xl" }}
@@ -62,168 +60,57 @@ export default function Integrations() {
         </Text>
       </Box>
 
-      {/* Listmonk integration card */}
-      <Box maxW="2xl">
-        <Text
-          fontSize="xs"
-          fontWeight="500"
-          color="fg.muted"
-          mb={3}
-          textTransform="uppercase"
-          letterSpacing="0.06em"
-        >
-          Available
-        </Text>
-
-        <Box
-          borderWidth="1px"
-          borderColor="border"
-          borderRadius="lg"
-          bg="bg.subtle"
-          overflow="hidden"
-        >
-          <Flex align="flex-start" p={5} gap={4}>
-            {/* Icon */}
-            <Flex
-              w={9}
-              h={9}
-              align="center"
-              justify="center"
-              borderRadius="md"
-              bg="bg.muted"
-              borderWidth="1px"
-              borderColor="border"
-              flexShrink={0}
-            >
-              <FiList size={16} />
-            </Flex>
-
-            {/* Info */}
-            <Box flex={1} minW={0}>
-              <Flex align="center" gap={2} mb={0.5}>
-                <Text fontSize="sm" fontWeight="500">
-                  Listmonk
-                </Text>
-                {integration && (
+      <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 6 }} gap={3}>
+        {INTEGRATION_TYPES.map((tile) => {
+          const count = countMap[tile.key] ?? 0;
+          return (
+            <Link key={tile.key} to={tile.href}>
+              <Flex
+                direction="column"
+                align="center"
+                justify="center"
+                gap={3}
+                p={5}
+                borderWidth="1px"
+                borderColor="border"
+                borderRadius="xl"
+                bg="bg.subtle"
+                cursor="pointer"
+                position="relative"
+                minH="110px"
+                _hover={{ borderColor: "fg.muted", bg: "bg.muted" }}
+                transition="all 0.15s"
+              >
+                {count > 0 && (
                   <Badge
-                    size="sm"
+                    position="absolute"
+                    top={2}
+                    right={2}
+                    size="xs"
                     colorPalette="green"
                     variant="subtle"
                     borderRadius="full"
-                    px={2}
-                    fontSize="10px"
-                    gap={1}
+                    px={1.5}
+                    fontSize="9px"
                   >
-                    <FiCheck size={9} />
-                    Connected
+                    {count}
                   </Badge>
                 )}
-              </Flex>
-              <Text fontSize="xs" color="fg.muted" mb={3}>
-                Self-hosted newsletter & mailing list manager. Pull your lists
-                into Scrub to validate subscribers and improve deliverability.
-              </Text>
-
-              {loadingIntegration ? (
-                <Text fontSize="xs" color="fg.muted">
-                  Loading…
-                </Text>
-              ) : integration ? (
-                <Box>
-                  <Text
-                    fontSize="xs"
-                    fontFamily="mono"
-                    color="fg.muted"
-                    mb={3}
-                    truncate
-                  >
-                    {integration.url}
-                  </Text>
-                  <Flex align="center" gap={2}>
-                    <Button
-                      asChild
-                      size="xs"
-                      bg="fg"
-                      color="bg"
-                      borderRadius="md"
-                      fontWeight="500"
-                      _hover={{ opacity: 0.85 }}
-                    >
-                      <Link to="/integrations/listmonk">Manage</Link>
-                    </Button>
-                    {confirmDisconnect ? (
-                      <>
-                        <Text fontSize="xs" color="fg.muted">
-                          Disconnect?
-                        </Text>
-                        <Button
-                          size="xs"
-                          colorPalette="red"
-                          borderRadius="md"
-                          fontWeight="500"
-                          loading={disconnecting}
-                          onClick={handleDisconnect}
-                        >
-                          Confirm
-                        </Button>
-                        <Button
-                          size="xs"
-                          variant="outline"
-                          borderColor="border"
-                          borderRadius="md"
-                          fontWeight="500"
-                          onClick={() => setConfirmDisconnect(false)}
-                        >
-                          Cancel
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        size="xs"
-                        variant="outline"
-                        borderColor="border"
-                        borderRadius="md"
-                        fontWeight="500"
-                        color="fg.muted"
-                        _hover={{
-                          color: "red.500",
-                          borderColor: "red.300",
-                          bg: "red.50",
-                          _dark: { bg: "red.950" },
-                        }}
-                        onClick={() => setConfirmDisconnect(true)}
-                      >
-                        Disconnect
-                      </Button>
-                    )}
-                  </Flex>
-                </Box>
-              ) : (
-                <Button
-                  size="sm"
-                  bg="fg"
-                  color="bg"
-                  borderRadius="md"
+                <Box color="fg.muted">{tile.icon}</Box>
+                <Text
+                  fontSize="xs"
                   fontWeight="500"
-                  _hover={{ opacity: 0.85 }}
-                  onClick={() => setModalOpen(true)}
+                  color="fg"
+                  textAlign="center"
+                  lineHeight="tight"
                 >
-                  Connect
-                </Button>
-              )}
-            </Box>
-          </Flex>
-        </Box>
-      </Box>
-
-      <ConnectListmonkModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onConnected={(i) => {
-          setIntegration(i);
-          setModalOpen(false);
-        }}
-      />
+                  {tile.label}
+                </Text>
+              </Flex>
+            </Link>
+          );
+        })}
+      </SimpleGrid>
     </Container>
   );
 }

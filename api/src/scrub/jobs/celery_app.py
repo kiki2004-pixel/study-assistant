@@ -5,7 +5,7 @@ from sentry_sdk.integrations.celery import CeleryIntegration
 
 from scrub.services.listmonk import ListmonkClient
 from scrub.settings import Settings
-from scrub.storage.integration_store import IntegrationStore, IntegrationType
+from scrub.storage.integration_store import IntegrationStore
 
 settings = Settings()
 
@@ -25,10 +25,10 @@ celery_app = Celery(
 )
 
 
-def _get_listmonk_client(user_id: int) -> ListmonkClient | None:
-    """Look up the user's saved Listmonk integration and return a client, or None."""
+def _get_listmonk_client(integration_id: int) -> ListmonkClient | None:
+    """Look up the integration by id and return a client, or None."""
     store = IntegrationStore(settings.scrub_db_url)
-    integration = store.get(user_id, IntegrationType.listmonk)
+    integration = store.get_by_id(integration_id)
     if not integration:
         return None
     cfg = integration.config
@@ -36,12 +36,14 @@ def _get_listmonk_client(user_id: int) -> ListmonkClient | None:
 
 
 @celery_app.task(name="validate_list_page")
-def validate_list_page(user_id: int, list_id: int | None, page: int, page_size: int):
+def validate_list_page(
+    integration_id: int, list_id: int | None, page: int, page_size: int
+):
     """
-    Validate one page of subscribers for a user's Listmonk list.
+    Validate one page of subscribers for a Listmonk integration.
     Subscribers whose email fails validation are added to the blocklist.
     """
-    client = _get_listmonk_client(user_id)
+    client = _get_listmonk_client(integration_id)
     if not client:
         return
 
@@ -63,14 +65,14 @@ def validate_list_page(user_id: int, list_id: int | None, page: int, page_size: 
 
 
 @celery_app.task(name="start_list_validation")
-def start_list_validation(user_id: int, list_id: int | None = None):
+def start_list_validation(integration_id: int, list_id: int | None = None):
     """
-    Kick off paged validation for a user's Listmonk list (or all subscribers
-    if list_id is None). Fans out one validate_list_page task per page.
+    Kick off paged validation for a Listmonk integration's list.
+    Fans out one validate_list_page task per page.
     """
-    client = _get_listmonk_client(user_id)
+    client = _get_listmonk_client(integration_id)
     if not client:
         return
 
-    print(f"Queuing validation for user {user_id}, list {list_id}")
-    validate_list_page.delay(user_id, list_id, 1, 100)
+    print(f"Queuing validation for integration {integration_id}, list {list_id}")
+    validate_list_page.delay(integration_id, list_id, 1, 100)

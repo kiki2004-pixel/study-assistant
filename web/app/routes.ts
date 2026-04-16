@@ -13,6 +13,7 @@ export default [
     route("lists", "routes/lists.tsx"),
     route("integrations", "routes/integrations.tsx"),
     route("integrations/listmonk", "routes/integrations.listmonk.tsx"),
+    route("integrations/listmonk/:id", "routes/integrations.listmonk.$id.tsx"),
     route("api/docs", "routes/docs.tsx"),
     route("api/keys", "routes/api.tsx"),
     route("settings", "routes/settings.tsx", [
