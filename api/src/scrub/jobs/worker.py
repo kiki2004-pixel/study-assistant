@@ -8,7 +8,7 @@ from sqlalchemy.pool import NullPool
 
 from scrub.models.history_store import HistoryStore
 from scrub.models.integration_store import IntegrationStore
-from scrub.models.validation_job_store import JobStatus, ValidationJobStore
+from scrub.models.validation_job_store import ValidationJobStore
 from scrub.repositories.user_repository import UserRepository
 from scrub.services.listmonk import ListmonkClient
 from scrub.services.validation_service import validate_email_internal

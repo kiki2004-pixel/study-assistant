@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import httpx
 import listmonk
-from listmonk.models import MailingList, Subscriber
+from listmonk.models import Subscriber
 
 
 class ListmonkClient:
