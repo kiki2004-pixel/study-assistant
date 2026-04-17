@@ -71,7 +71,14 @@ def start_list_validation(
     q = get_queue()
     for page in range(1, pages + 1):
         q.enqueue(
-            validate_list_page, integration_id, list_id, page, 100, user_id, request_id
+            validate_list_page,
+            integration_id,
+            list_id,
+            page,
+            100,
+            user_id,
+            request_id,
+            job_timeout=600,  # 10 min — 100 DNS lookups at 2s each + overhead
         )
 
 
@@ -99,15 +106,32 @@ def validate_list_page(
     emails = [sub.get("email", "") for sub in subscribers]
 
     async def _run_batch():
-        return await asyncio.gather(
-            *[validate_email_internal(email) for email in emails],
-            return_exceptions=True,
+        sem = asyncio.Semaphore(
+            20
+        )  # cap concurrent DNS lookups to prevent event loop stalls
+
+        async def bounded_validate(email: str):
+            async with sem:
+                return await validate_email_internal(email)
+
+        return await asyncio.wait_for(
+            asyncio.gather(
+                *[bounded_validate(email) for email in emails],
+                return_exceptions=True,
+            ),
+            timeout=120,  # hard backstop: 20 concurrent × ~3s per lookup × 2 rounds + overhead
         )
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
         raw_results = loop.run_until_complete(_run_batch())
+    except asyncio.TimeoutError:
+        # Entire batch exceeded the 120s backstop — treat all emails as errored
+        # and mark the job failed so it doesn't stay stuck in "running" forever.
+        job_store = ValidationJobStore(settings.scrub_db_url, poolclass=NullPool)
+        job_store.fail_job(request_id, f"Page {page} validation timed out after 120s")
+        return
     finally:
         loop.close()
 

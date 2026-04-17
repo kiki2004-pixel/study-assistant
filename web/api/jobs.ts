@@ -1,28 +1,7 @@
 import { apiFetch } from "./client";
+import type { ActiveJobItem, JobProgressResponse } from "~types/jobs";
 
-export interface JobProgressResponse {
-  request_id: string;
-  status: string;
-  total_items: number;
-  processed_items: number;
-  valid_count: number;
-  invalid_count: number;
-  error_count: number;
-  progress_percentage: number;
-  is_complete: boolean;
-  error_message: string | null;
-}
-
-export interface ActiveJobItem {
-  request_id: string;
-  job_type: string;
-  status: string;
-  list_name: string | null;
-  total_items: number;
-  processed_items: number;
-  progress_percentage: number;
-  created_at: string;
-}
+export type { ActiveJobItem, JobProgressResponse };
 
 export function getJobProgress(
   requestId: string,
